@@ -4,10 +4,7 @@
   "description": "Capability for the main window",
   "windows": ["main"],
   "permissions": [
-    "core:default",
-    "opener:default",
-    "core:window:allow-start-dragging",
-    "core:window:allow-toggle-maximize",
+    "shell:allow-open",
     "nspopover:allow-show-popover",
     "nspopover:allow-hide-popover",
     "nspopover:allow-is-popover-shown",

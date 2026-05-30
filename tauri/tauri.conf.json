@@ -9,8 +9,14 @@
     "frontendDist": "../apps/client/dist"
   },
   "app": {
+    "trayIcon": {
+      "iconPath": "./icons/icon.png",
+      "iconAsTemplate": true,
+      "id": "tray"
+    },
     "windows": [
       {
+        "label": "main",
         "title": "main",
         "width": 750,
         "height": 450,
@@ -21,12 +27,21 @@
         "transparent": true,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "alwaysOnTop": true,
+        "alwaysOnTop": false,
         "windowEffects": {
           "effects": ["sidebar"],
           "state": "active",
           "radius": 20
         }
+      },
+      {
+        "label": "tray",
+        "title": "tray",
+        "transparent": true,
+        "decorations": false,
+        "visible": false,
+        "width": 400,
+        "height": 1000
       }
     ],
     "security": {
