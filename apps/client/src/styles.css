@@ -4,6 +4,20 @@ html {
   overflow: hidden;
 }
 
+*,
+*::after,
+*::before {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-app-region: no-drag;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  font-family: var(--font-poppins);
+}
+
 body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
@@ -18,5 +32,25 @@ code {
 }
 
 #app {
-  @apply bg-black/15;
+  /*@apply bg-black/15;*/
+}
+
+::-webkit-scrollbar-corner {
+  @apply bg-zinc-100 dark:bg-zinc-900;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-zinc-100 dark:bg-zinc-900;
+}
+
+::-webkit-scrollbar-thumb {
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+  @apply bg-zinc-400 dark:bg-zinc-700;
 }

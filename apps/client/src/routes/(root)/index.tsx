@@ -36,26 +36,82 @@ function App() {
     });
   };
 
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+
+    invoke("open_native_tooltip", {
+      text: "About Menu",
+      keys: "⇧,⌘,K",
+      x: rect.left + rect.width / 2,
+      y: rect.top - rect.height,
+    });
+  };
+
+  const handleMouseLeave = () => {
+    invoke("close_native_tooltip");
+  };
+
+  const handleCopySuccess = () => {
+    invoke("open_native_toast", {
+      text: "Copied configuration token to clipboard",
+      icon: "doc.on.doc.fill",
+      iconHex: "#10B981",
+    });
+  };
+
+  const handleSaveError = () => {
+    invoke("open_native_toast", {
+      text: "Failed to connect to database runtime",
+      icon: "exclamationmark.triangle.fill",
+      iconHex: "#FF6060",
+    });
+  };
+
   return (
     <>
-      <div className="h-screen w-screen flex items-center justify-center gap-2 overflow-y-auto text-white">
+      <div className="h-[50vh] w-screen flex items-center justify-center gap-2 overflow-y-auto text-white">
         <button
           className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
           onClick={handleWindowPopver}
         >
-          Create Window Popver
+          Window Popver
         </button>
         <button
           className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
           onClick={handleNativePopver}
         >
-          Create Native Popver
+          Native Popver
         </button>
         <button
           className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
           onClick={handleNativePopverWebview}
         >
-          Create Native Popver Webview
+          Native Popver Webview
+        </button>
+      </div>
+      <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
+        <div
+          className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit absolute bottom-5 left-5"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          Hover Over
+        </div>
+      </div>
+
+      <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
+        <button
+          onClick={handleCopySuccess}
+          className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+        >
+          Show Success Toast
+        </button>
+
+        <button
+          onClick={handleSaveError}
+          className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+        >
+          Show Error Toast
         </button>
       </div>
     </>

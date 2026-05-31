@@ -63,15 +63,15 @@ pub fn open_native_webview_popover(app: tauri::AppHandle, x: f64, y: f64) {
 }
 
 #[tauri::command]
-pub fn open_window_popover(app: tauri::AppHandle, x: f64, y: f64, width: f64, height: f64) {
-    if let Some(window) = app.get_webview_window("popover_window") {
+pub fn open_window_popover(app_handle: tauri::AppHandle, x: f64, y: f64, width: f64, height: f64) {
+    if let Some(window) = app_handle.get_webview_window("popover_window") {
         println!("popover_window already exists. closing & creating a new one...");
         window.close().unwrap();
     } else {
-        if let Some(main_window) = app.get_webview_window("main") {
+        if let Some(main_window) = app_handle.get_webview_window("main") {
             let position = main_window.outer_position().unwrap();
             let logical_position = position.to_logical::<f64>(main_window.scale_factor().unwrap());
-            let mut popover_url = if let Some(main_win) = app.get_webview_window("main") {
+            let mut popover_url = if let Some(main_win) = app_handle.get_webview_window("main") {
                 main_win.url().unwrap()
             } else {
                 // Fallback safety string if main window is missing
@@ -82,9 +82,9 @@ pub fn open_window_popover(app: tauri::AppHandle, x: f64, y: f64, width: f64, he
 
             popover_url.set_fragment(Some("popover"));
 
-            let app_clone = app.clone();
+            let app_handle_clone = app_handle.clone();
             let popover = WebviewWindowBuilder::new(
-                &app,
+                &app_handle,
                 "popover_window",
                 WebviewUrl::CustomProtocol(popover_url),
             )
@@ -118,29 +118,11 @@ pub fn open_window_popover(app: tauri::AppHandle, x: f64, y: f64, width: f64, he
                     println!("🎉 Popover web content ready! Initiating view hijacking...");
                     window.to_popover(ToPopoverOptions {
                         is_fullsize_content: true,
-                        tray_id: Some("tray".to_string()),
+                        window_label: Some("popover_window".to_string()),
                         x: logical_position.x as f64 + x,
                         y: logical_position.y as f64 + y,
                     });
-
-                    let tray = app_clone.tray_by_id("tray").unwrap();
-                    let app_clone_clone = app_clone.clone();
-                    tray.on_tray_icon_event(move |_, event| match event {
-                        TrayIconEvent::Click {
-                            button,
-                            button_state,
-                            ..
-                        } => {
-                            if button == MouseButton::Left && button_state == MouseButtonState::Up {
-                                if !app_clone_clone.is_popover_shown() {
-                                    app_clone_clone.show_popover();
-                                } else {
-                                    app_clone_clone.hide_popover();
-                                }
-                            }
-                        }
-                        _ => {}
-                    });
+                    app_handle_clone.show_popover();
                 }
             })
             .build()

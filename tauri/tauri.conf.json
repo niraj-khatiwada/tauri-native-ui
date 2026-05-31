@@ -17,7 +17,6 @@
     "windows": [
       {
         "label": "main",
-        "title": "main",
         "width": 750,
         "height": 450,
         "maxWidth": 750,
@@ -36,12 +35,11 @@
       },
       {
         "label": "tray",
-        "title": "tray",
         "transparent": true,
         "decorations": false,
         "visible": false,
         "width": 400,
-        "height": 1000
+        "height": 600
       }
     ],
     "security": {

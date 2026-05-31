@@ -1,4 +1,8 @@
-use tauri::Manager;
+use tauri::{
+    tray::{MouseButton, MouseButtonState, TrayIconEvent},
+    ActivationPolicy, Manager,
+};
+use tauri_plugin_nspopover::{AppExt, ToPopoverOptions, WindowExt};
 
 mod commands;
 mod macos;
@@ -21,8 +25,39 @@ pub fn run() {
             commands::open_native_toast,
             commands::convert_window_to_floating_panel
         ])
-        .setup(|app_handle| {
-            if let Some(main_window) = app_handle.get_webview_window("main") {
+        .setup(|app| {
+            if let Some(main_window) = app.get_webview_window("main") {
+                // // Tray
+                // app.set_activation_policy(ActivationPolicy::Accessory);
+
+                // let tray_window = app.handle().get_webview_window("tray").unwrap();
+                // tray_window.to_popover(ToPopoverOptions {
+                //     is_fullsize_content: false,
+                //     tray_id: Some("0".to_string()),
+                //     x: 0.,
+                //     y: 0.,
+                // });
+
+                // let tray = app.tray_by_id("tray").unwrap();
+                // let app_handle = app.handle().clone();
+                // tray.on_tray_icon_event(move |_, event| match event {
+                //     TrayIconEvent::Click {
+                //         button,
+                //         button_state,
+                //         ..
+                //     } => {
+                //         println!(">> clicked");
+                //         if button == MouseButton::Left && button_state == MouseButtonState::Up {
+                //             if !app_handle.is_popover_shown() {
+                //                 app_handle.show_popover();
+                //             } else {
+                //                 app_handle.hide_popover();
+                //             }
+                //         }
+                //     }
+                //     _ => {}
+                // });
+
                 let main_window_clone = main_window.clone();
                 macos::hide_traffic_light_buttons(&main_window_clone);
 
