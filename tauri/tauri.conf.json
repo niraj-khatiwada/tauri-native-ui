@@ -32,14 +32,6 @@
           "state": "active",
           "radius": 20
         }
-      },
-      {
-        "label": "tray",
-        "transparent": true,
-        "decorations": false,
-        "visible": false,
-        "width": 400,
-        "height": 600
       }
     ],
     "security": {

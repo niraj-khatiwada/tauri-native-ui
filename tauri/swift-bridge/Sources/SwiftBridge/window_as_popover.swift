@@ -15,7 +15,7 @@ class WindowAsPopoverManager {
 
     private var activePopover: NSPopover?
     private var activeAnchorWindow: NSWindow?
-    
+
     private var isCleaningUp = false
 
     func show(sendablePtr: SendableWindowPointer, x: Double, y: Double) {
@@ -40,7 +40,7 @@ class WindowAsPopoverManager {
         let windowFrameHeight = sourceWindow.frame.height
         let contentBoundsHeight = stolenView.bounds.height
         let titlebarHeight = windowFrameHeight - contentBoundsHeight
-        
+
         let anchorX = screenFrame.origin.x + CGFloat(x)
         let anchorY = screenFrame.origin.y + (screenFrame.size.height - CGFloat(y)) - titlebarHeight
 
@@ -91,38 +91,40 @@ class WindowAsPopoverManager {
 
     @objc private func handleGlobalDismissal(_ notification: Notification) {
         guard !isCleaningUp else { return }
-        
+
         if let window = notification.object as? NSWindow {
             if window == activeAnchorWindow {
                 return
             }
         }
-        
+
         closeActivePopover()
     }
 
     func closeActivePopover() {
         guard !isCleaningUp else { return }
         isCleaningUp = true
-        
+
         self.stopObservingGlobalEvents()
-        
+
         if let popover = activePopover {
             popover.performClose(nil)
         }
-        
+
         self.activePopover = nil
         self.activeAnchorWindow = nil
         isCleaningUp = false
     }
-    
+
     private func stopObservingGlobalEvents() {
-        NotificationCenter.default.removeObserver(self, name: NSWindow.didMoveNotification, object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: nil)
+        NotificationCenter.default.removeObserver(
+            self, name: NSWindow.didMoveNotification, object: nil)
+        NotificationCenter.default.removeObserver(
+            self, name: NSWindow.didResignKeyNotification, object: nil)
     }
 }
 
-@_cdecl("show_window_as_popover")
+@_cdecl("show_window_as_popover_bridge")
 public func showWindowAsPopover(windowRawPtr: OpaquePointer, x: Double, y: Double) {
     let ptrInt = Int(bitPattern: windowRawPtr)
     let sendableContainer = SendableWindowPointer(address: ptrInt)
@@ -132,7 +134,7 @@ public func showWindowAsPopover(windowRawPtr: OpaquePointer, x: Double, y: Doubl
     }
 }
 
-@_cdecl("close_window_as_popover")
+@_cdecl("close_window_as_popover_bridge")
 public func closeWindowAsPopover() {
     DispatchQueue.main.async {
         WindowAsPopoverManager.shared.closeActivePopover()

@@ -8,9 +8,6 @@
     "opener:default",
     "core:window:allow-start-dragging",
     "core:window:allow-toggle-maximize",
-    "nspopover:allow-show-popover",
-    "nspopover:allow-hide-popover",
-    "nspopover:allow-is-popover-shown",
     "core:tray:allow-new",
     "core:tray:default"
   ]

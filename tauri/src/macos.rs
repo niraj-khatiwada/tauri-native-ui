@@ -10,9 +10,6 @@ use swift_rs::SRString;
 #[cfg(target_os = "macos")]
 use tauri::WebviewWindow;
 
-#[cfg(target_os = "macos")]
-use crate::swift_bridge::{self};
-
 // Hide the native traffic light buttons
 #[cfg(target_os = "macos")]
 pub fn hide_traffic_light_buttons(window: &tauri::WebviewWindow<tauri::Wry>) {
@@ -35,37 +32,44 @@ pub fn hide_traffic_light_buttons(window: &tauri::WebviewWindow<tauri::Wry>) {
     }
 }
 
-// show native popover
+// native popover
+#[cfg(target_os = "macos")]
+swift_rs::swift!(fn show_native_popover_bridge(x: f64, y: f64));
+
 #[cfg(target_os = "macos")]
 pub fn show_native_popover(x: f64, y: f64) {
     unsafe {
-        swift_bridge::show_native_popover(x, y);
+        show_native_popover_bridge(x, y);
     }
 }
 
-// show native popover
+// native tooltip
+#[cfg(target_os = "macos")]
+swift_rs::swift!(
+    fn show_native_tooltip_bridge(text: SRString, keys_array: SRString, x: f64, y: f64)
+);
+
 #[cfg(target_os = "macos")]
 pub fn show_native_tooltip(text: &str, hotkeys: Vec<String>, x: f64, y: f64) {
     let keys = hotkeys.deref().join(" ");
     unsafe {
-        swift_bridge::show_native_tooltip(
-            SRString::from(text),
-            SRString::from(keys.as_str()),
-            x,
-            y,
-        );
+        show_native_tooltip_bridge(SRString::from(text), SRString::from(keys.as_str()), x, y);
     }
 }
+#[cfg(target_os = "macos")]
+swift_rs::swift!(fn close_native_tooltip_bridge());
 
-// close native popover
 #[cfg(target_os = "macos")]
 pub fn close_native_tooltip() {
     unsafe {
-        swift_bridge::close_native_tooltip();
+        close_native_tooltip_bridge();
     }
 }
 
-// show native toast
+// native toast
+#[cfg(target_os = "macos")]
+swift_rs::swift!(fn show_native_toast_bridge(text: SRString, icon: SRString, icon_hex: SRString, x: f64, y: f64));
+
 #[cfg(target_os = "macos")]
 pub fn show_native_toast(
     text: &str,
@@ -75,7 +79,7 @@ pub fn show_native_toast(
     y: Option<f64>,
 ) {
     unsafe {
-        swift_bridge::show_native_toast(
+        show_native_toast_bridge(
             SRString::from(text),
             SRString::from(icon_string.unwrap_or_default()),
             SRString::from(icon_hex.unwrap_or_default()),
@@ -87,16 +91,22 @@ pub fn show_native_toast(
 
 // show any Tauri window as a popover
 #[cfg(target_os = "macos")]
+swift_rs::swift!(fn show_window_as_popover_bridge(window_raw_ptr: *mut c_void, x: f64, y: f64));
+
+#[cfg(target_os = "macos")]
 pub fn show_window_as_popover(window: &WebviewWindow, x: f64, y: f64) {
     unsafe {
         let raw_window_ptr = window.ns_window().unwrap() as *mut c_void;
-        swift_bridge::show_window_as_popover(raw_window_ptr, x, y);
+        show_window_as_popover_bridge(raw_window_ptr, x, y);
     }
 }
-// close any Tauri window as a popover (if any; has safe fallback if the popover is not present)
+
+#[cfg(target_os = "macos")]
+swift_rs::swift!(fn close_window_as_popover_bridge());
+
 #[cfg(target_os = "macos")]
 pub fn close_window_as_popover() {
     unsafe {
-        swift_bridge::close_window_as_popover();
+        close_window_as_popover_bridge();
     }
 }

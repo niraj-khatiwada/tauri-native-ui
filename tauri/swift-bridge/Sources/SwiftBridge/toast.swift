@@ -4,7 +4,7 @@ import SwiftRs
 @MainActor
 class NativeToastManager {
     static let shared = NativeToastManager()
-    
+
     private var activePanel: NSPanel?
     private var activeController: ToastViewController?
     private var autoHideTimer: Timer?
@@ -15,13 +15,16 @@ class NativeToastManager {
             existingPanel.close()
         }
 
-        guard let parentWindow = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first else { return }
+        guard
+            let parentWindow = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first
+        else { return }
         let controller = ToastViewController(text: text, iconName: iconName, iconHex: iconHex)
         let requiredSize = controller.view.fittingSize
-        
+
         let targetRect: NSRect
         if let x = minX, let y = minY {
-            targetRect = calculateToastFrame(parentWindow: parentWindow, size: requiredSize, minX: x, minY: y)
+            targetRect = calculateToastFrame(
+                parentWindow: parentWindow, size: requiredSize, minX: x, minY: y)
         } else {
             targetRect = calculateDefaultToastFrame(size: requiredSize)
         }
@@ -32,91 +35,97 @@ class NativeToastManager {
             backing: .buffered,
             defer: false
         )
-        
+
         panel.level = .statusBar
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.ignoresMouseEvents = true
         panel.contentViewController = controller
-        
+
         self.activePanel = panel
         self.activeController = controller
-        
+
         panel.alphaValue = 0.0
         panel.orderFrontRegardless()
-        
+
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.20
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             panel.animator().alphaValue = 1.0
         }
-        
-        autoHideTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { [weak self] _ in
+
+        autoHideTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) {
+            [weak self] _ in
             Task { @MainActor in
                 self?.dismissWithAnimation()
             }
         }
     }
-    
+
     private func calculateDefaultToastFrame(size: NSSize) -> NSRect {
         guard let primaryScreen = NSScreen.main else { return .zero }
         let screenFrame = primaryScreen.visibleFrame
-        
+
         let panelX = screenFrame.origin.x + (screenFrame.width - size.width) / 2
         let panelY = screenFrame.origin.y + 100
-        
+
         return NSRect(x: panelX, y: panelY, width: size.width, height: size.height)
     }
-    
-    private func calculateToastFrame(parentWindow: NSWindow, size: NSSize, minX: Double, minY: Double) -> NSRect {
+
+    private func calculateToastFrame(
+        parentWindow: NSWindow, size: NSSize, minX: Double, minY: Double
+    ) -> NSRect {
         let windowFrame = parentWindow.frame
-        
+
         let contentHeight = parentWindow.contentView?.bounds.height ?? windowFrame.height
         let titlebarHeight = windowFrame.height - contentHeight
-        
+
         let componentScreenX = windowFrame.origin.x + CGFloat(minX)
-        let componentScreenY = (windowFrame.origin.y + windowFrame.height) - CGFloat(minY) - titlebarHeight
-        
+        let componentScreenY =
+            (windowFrame.origin.y + windowFrame.height) - CGFloat(minY) - titlebarHeight
+
         var panelX = componentScreenX - (size.width / 2)
         var panelY = componentScreenY + 16
-        
+
         let activeScreen = parentWindow.screen ?? NSScreen.main
         if let screen = activeScreen {
             let safeBounds = screen.visibleFrame
-            
+
             if panelX < safeBounds.origin.x {
                 panelX = safeBounds.origin.x + 12
             } else if panelX + size.width > safeBounds.origin.x + safeBounds.size.width {
                 panelX = (safeBounds.origin.x + safeBounds.size.width) - size.width - 12
             }
-            
+
             if panelY + size.height > safeBounds.origin.y + safeBounds.size.height {
                 panelY = componentScreenY - size.height - 16
             } else if panelY < safeBounds.origin.y {
                 panelY = safeBounds.origin.y + 12
             }
         }
-        
+
         return NSRect(origin: NSPoint(x: panelX, y: panelY), size: size)
     }
-    
+
     private func dismissWithAnimation() {
         guard let panel = activePanel else { return }
-        
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.25
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            panel.animator().alphaValue = 0.0
-        }, completionHandler: {
-            Task { @MainActor in
-                panel.close()
-                if self.activePanel == panel {
-                    self.activePanel = nil
-                    self.activeController = nil
+
+        NSAnimationContext.runAnimationGroup(
+            { context in
+                context.duration = 0.25
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                panel.animator().alphaValue = 0.0
+            },
+            completionHandler: {
+                Task { @MainActor in
+                    panel.close()
+                    if self.activePanel == panel {
+                        self.activePanel = nil
+                        self.activeController = nil
+                    }
                 }
-            }
-        })
+            })
     }
 }
 
@@ -150,7 +159,6 @@ class ToastViewController: NSViewController {
         visualEffect.layer?.borderColor = NSColor(white: 1.0, alpha: 0.1).cgColor
         container.addSubview(visualEffect)
 
-
         let stackView = NSStackView()
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.orientation = .horizontal
@@ -170,12 +178,14 @@ class ToastViewController: NSViewController {
             stackView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
 
-            stackView.heightAnchor.constraint(equalToConstant: 42.0)
+            stackView.heightAnchor.constraint(equalToConstant: 42.0),
         ])
 
         if let icon = iconName, !icon.isEmpty {
             let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
-            if let nsImage = NSImage(systemSymbolName: icon, accessibilityDescription: nil)?.withSymbolConfiguration(config) {
+            if let nsImage = NSImage(systemSymbolName: icon, accessibilityDescription: nil)?
+                .withSymbolConfiguration(config)
+            {
                 let imageView = NSImageView(image: nsImage)
                 imageView.translatesAutoresizingMaskIntoConstraints = false
 
@@ -184,7 +194,7 @@ class ToastViewController: NSViewController {
 
                 NSLayoutConstraint.activate([
                     imageView.widthAnchor.constraint(equalToConstant: 16),
-                    imageView.heightAnchor.constraint(equalToConstant: 16)
+                    imageView.heightAnchor.constraint(equalToConstant: 16),
                 ])
                 stackView.addArrangedSubview(imageView)
             }
@@ -217,19 +227,20 @@ extension NSColor {
     }
 }
 
-
-@_cdecl("show_native_toast")
-public func showNativeToast(text: SRString, icon: SRString, iconHex: SRString, minX: Double, minY: Double) {
+@_cdecl("show_native_toast_bridge")
+public func showNativeToast(
+    text: SRString, icon: SRString, iconHex: SRString, minX: Double, minY: Double
+) {
     let textStr = text.toString()
     let iconStr = icon.toString()
     let iconHexStr = iconHex.toString()
-    
+
     let optionalIcon = iconStr.isEmpty ? nil : iconStr
     let optionalIconHex = iconHexStr.isEmpty ? nil : iconHexStr
-    
+
     let optionalX = (minX == -1.0) ? nil : minX
     let optionalY = (minY == -1.0) ? nil : minY
-    
+
     DispatchQueue.main.async {
         NativeToastManager.shared.show(
             text: textStr,

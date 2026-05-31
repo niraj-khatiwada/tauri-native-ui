@@ -4,7 +4,7 @@ import SwiftRs
 @MainActor
 class NativePopoverManager {
     static let shared = NativePopoverManager()
-    
+
     var activePopover: NSPopover?
     var activeController: PopoverContentViewController?
 
@@ -13,8 +13,10 @@ class NativePopoverManager {
             closeAndCleanup()
             return
         }
-        
-        guard let parentWindow = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first else {
+
+        guard
+            let parentWindow = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first
+        else {
             print("Error: Could not find any active application window.")
             return
         }
@@ -27,13 +29,13 @@ class NativePopoverManager {
 
         let popover = NSPopover()
         let controller = PopoverContentViewController()
-        
+
         popover.contentViewController = controller
         popover.behavior = .transient
         popover.animates = true
-        
+
         popover.delegate = controller
-        
+
         self.activePopover = popover
         self.activeController = controller
 
@@ -43,11 +45,11 @@ class NativePopoverManager {
             preferredEdge: .minY
         )
     }
-    
+
     func closeAndCleanup() {
         guard let popover = activePopover else { return }
         popover.performClose(nil)
-        
+
         self.activePopover = nil
         self.activeController = nil
         print(" Managed Native Popover references removed and memory recycled.")
@@ -63,7 +65,7 @@ class PopoverContentViewController: NSViewController, NSPopoverDelegate {
         label.frame = NSRect(x: 50, y: 40, width: 100, height: 20)
         self.view.addSubview(label)
     }
-    
+
     nonisolated func popoverDidClose(_ notification: Notification) {
         Task { @MainActor in
             // Empty out the global tracking containers to safely wrap up lifecycle
@@ -73,7 +75,7 @@ class PopoverContentViewController: NSViewController, NSPopoverDelegate {
     }
 }
 
-@_cdecl("show_native_popover")
+@_cdecl("show_native_popover_bridge")
 public func showNativePopover(x: Double, y: Double) {
     DispatchQueue.main.async {
         NativePopoverManager.shared.showOrToggle(x: x, y: y)

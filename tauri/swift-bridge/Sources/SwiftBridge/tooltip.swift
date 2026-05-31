@@ -207,7 +207,7 @@ class TooltipViewController: NSViewController {
     }
 }
 
-@_cdecl("show_native_tooltip")
+@_cdecl("show_native_tooltip_bridge")
 public func showNativeTooltip(text: SRString, keysArrayStr: SRString, minX: Double, minY: Double) {
     let textStr = text.toString()
     let keysList = keysArrayStr.toString().components(separatedBy: " ")
@@ -222,7 +222,7 @@ public func showNativeTooltip(text: SRString, keysArrayStr: SRString, minX: Doub
     }
 }
 
-@_cdecl("close_native_tooltip")
+@_cdecl("close_native_tooltip_bridge")
 public func closeNativeTooltip() {
     DispatchQueue.main.async {
         TooltipManager.shared.hide()

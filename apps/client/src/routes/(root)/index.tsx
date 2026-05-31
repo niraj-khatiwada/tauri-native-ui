@@ -60,9 +60,17 @@ function App() {
     });
   };
 
+  const handleTrayPopoverOpen = () => {
+    invoke("open_tray_popover");
+  };
+
+  const handleTrayPopoverClose = () => {
+    invoke("close_tray_popover");
+  };
+
   return (
     <>
-      <div className="h-[50vh] w-screen flex items-center justify-center gap-2 overflow-y-auto text-white">
+      <div className="h-screen w-screen flex flex-col items-center justify-center gap-2 overflow-y-auto text-white">
         <button
           className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit absolute top-4 left-4"
           onClick={handleWindowPopver}
@@ -75,8 +83,6 @@ function App() {
         >
           Native Popver
         </button>
-      </div>
-      <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
         <div
           className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit absolute bottom-5 left-5"
           onMouseEnter={handleMouseEnter}
@@ -84,22 +90,36 @@ function App() {
         >
           Hover Over
         </div>
-      </div>
+        <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
+          <button
+            onClick={handleCopySuccess}
+            className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+          >
+            Show Success Toast
+          </button>
 
-      <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
-        <button
-          onClick={handleCopySuccess}
-          className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
-        >
-          Show Success Toast
-        </button>
+          <button
+            onClick={handleSaveError}
+            className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+          >
+            Show Error Toast
+          </button>
+        </div>
+        <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
+          <button
+            onClick={handleTrayPopoverOpen}
+            className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+          >
+            Open Tray Popover
+          </button>
 
-        <button
-          onClick={handleSaveError}
-          className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
-        >
-          Show Error Toast
-        </button>
+          <button
+            onClick={handleTrayPopoverClose}
+            className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+          >
+            Close Tray Popover
+          </button>
+        </div>
       </div>
     </>
   );

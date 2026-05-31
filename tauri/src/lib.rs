@@ -1,19 +1,20 @@
 use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
-    ActivationPolicy, Manager,
+    Manager, WebviewUrl, WebviewWindowBuilder,
 };
-use tauri_plugin_nspopover::{AppExt, ToPopoverOptions, WindowExt};
+
+use crate::tray::WindowExt;
 
 mod commands;
+mod domain;
 mod macos;
-mod swift_bridge;
+mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_nspopover::init())
         .invoke_handler(tauri::generate_handler![
             commands::open_window_popover,
             commands::close_window_popover,
@@ -21,54 +22,54 @@ pub fn run() {
             commands::open_native_tooltip,
             commands::close_native_tooltip,
             commands::open_native_toast,
+            commands::open_tray_popover,
+            commands::close_tray_popover,
         ])
         .setup(|app| {
-            if let Some(main_window) = app.get_webview_window("main") {
-                // // Tray
-                // app.set_activation_policy(ActivationPolicy::Accessory);
+            // Tray
+            let app_handle = app.handle().clone();
+            let main_window = app_handle
+                .get_webview_window(domain::AppWindow::Main.as_str())
+                .expect("main window must exist");
 
-                // let tray_window = app.handle().get_webview_window("tray").unwrap();
-                // tray_window.to_popover(ToPopoverOptions {
-                //     is_fullsize_content: false,
-                //     tray_id: Some("0".to_string()),
-                //     x: 0.,
-                //     y: 0.,
-                // });
+            let tray_window_label = domain::AppWindow::Tray.as_str();
+            let mut tray_url = main_window.url().expect("main window url must exist");
+            tray_url.set_fragment(Some(tray_window_label));
 
-                // let tray = app.tray_by_id("tray").unwrap();
-                // let app_handle = app.handle().clone();
-                // tray.on_tray_icon_event(move |_, event| match event {
-                //     TrayIconEvent::Click {
-                //         button,
-                //         button_state,
-                //         ..
-                //     } => {
-                //         println!(">> clicked");
-                //         if button == MouseButton::Left && button_state == MouseButtonState::Up {
-                //             if !app_handle.is_popover_shown() {
-                //                 app_handle.show_popover();
-                //             } else {
-                //                 app_handle.hide_popover();
-                //             }
-                //         }
-                //     }
-                //     _ => {}
-                // });
+            let tray_window = WebviewWindowBuilder::new(
+                &app_handle,
+                tray_window_label,
+                WebviewUrl::CustomProtocol(tray_url),
+            )
+            .parent(&main_window)
+            .expect("main parent window must exist")
+            .decorations(false)
+            .transparent(true)
+            .visible(false)
+            .inner_size(400.0, 500.0)
+            .build()
+            .expect("tray window must initialize");
 
-                let main_window_clone = main_window.clone();
-                macos::hide_traffic_light_buttons(&main_window_clone);
+            tray::init(app);
+            tray_window.to_popover(None);
 
-                // Close app when not focused (Temp until we get the screen recording access)
-                // #[cfg(not(debug_assertions))]
-                // main_window.on_window_event(move |event| match event {
-                //     tauri::WindowEvent::Focused(is_focused) => {
-                //         if !is_focused && main_window_clone.webview_windows().len() == 1 {
-                //             main_window_clone.close().unwrap();
-                //         }
-                //     }
-                //     _ => {}
-                // });
-            }
+            let tray = app
+                .tray_by_id(tray_window_label)
+                .expect("tray window must exist");
+            tray.on_tray_icon_event(move |_, event| match event {
+                TrayIconEvent::Click {
+                    button,
+                    button_state,
+                    ..
+                } => {
+                    if button == MouseButton::Left && button_state == MouseButtonState::Up {
+                        tray_window.open_tray_popover();
+                    }
+                }
+                _ => {}
+            });
+
+            macos::hide_traffic_light_buttons(&main_window);
             Ok(())
         })
         .run(tauri::generate_context!())
