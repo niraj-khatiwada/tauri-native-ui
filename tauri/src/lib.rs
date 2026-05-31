@@ -6,7 +6,6 @@ use tauri_plugin_nspopover::{AppExt, ToPopoverOptions, WindowExt};
 
 mod commands;
 mod macos;
-mod panel_controller;
 mod swift_bridge;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -19,11 +18,9 @@ pub fn run() {
             commands::open_window_popover,
             commands::close_window_popover,
             commands::open_native_popover,
-            commands::open_native_webview_popover,
             commands::open_native_tooltip,
             commands::close_native_tooltip,
             commands::open_native_toast,
-            commands::convert_window_to_floating_panel
         ])
         .setup(|app| {
             if let Some(main_window) = app.get_webview_window("main") {

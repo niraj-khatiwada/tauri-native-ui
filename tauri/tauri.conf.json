@@ -26,7 +26,7 @@
         "transparent": true,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "alwaysOnTop": false,
+        "alwaysOnTop": true,
         "windowEffects": {
           "effects": ["sidebar"],
           "state": "active",
@@ -57,7 +57,6 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ],
-    "resources": { "../apps/client/dist": "dist" }
+    ]
   }
 }

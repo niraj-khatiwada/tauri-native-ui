@@ -33,7 +33,7 @@ function App() {
       text: "About Menu",
       keys: ["⇧", "⌘", "K"],
       x: rect.left + rect.width / 2,
-      y: rect.top - rect.height - 10,
+      y: rect.top - rect.height,
     });
   };
 

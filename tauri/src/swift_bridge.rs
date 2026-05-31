@@ -1,21 +1,19 @@
+use std::ffi::c_void;
+
+use swift_rs::SRString;
+
 // popover
 swift_rs::swift!(pub fn show_native_popover(x: f64, y: f64));
 
-// popover webview
+// tooltip
 swift_rs::swift!(
-    pub fn show_webview_popover(
-        url: swift_rs::SRString,
-        x: f64,
-        y: f64,
-        enable_dev_tools: swift_rs::Bool
-    )
+    pub fn show_native_tooltip(text: SRString, keys_array: SRString, x: f64, y: f64)
 );
-
-// raycast like native tooltip
-swift_rs::swift!(
-    pub fn show_native_tooltip(text: swift_rs::SRString, keys: swift_rs::SRString, x: f64, y: f64)
-);
-swift_rs::swift!(pub fn hide_native_tooltip());
+swift_rs::swift!(pub fn close_native_tooltip());
 
 // toast
-swift_rs::swift!(pub fn show_native_toast(text: swift_rs::SRString, icon: swift_rs::SRString,icon_hex: swift_rs::SRString));
+swift_rs::swift!(pub fn show_native_toast(text: SRString, icon: SRString, icon_hex: SRString, x: f64, y: f64));
+
+// window as popover
+swift_rs::swift!(pub fn show_window_as_popover(window_raw_ptr: *mut c_void, x: f64, y: f64));
+swift_rs::swift!(pub fn close_window_as_popover());
