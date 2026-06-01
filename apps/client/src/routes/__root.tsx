@@ -3,7 +3,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import { QueryClientProvider } from "~/provider/QueryClientProvider";
 import Titlebar from "~/tauri/components/Titlebar";
-import { getPlatform } from "~/utils/fs";
+import { getPlatform } from "~/tauri/utils";
 
 export const Route = createRootRouteWithContext()({
   component: RootComponent,

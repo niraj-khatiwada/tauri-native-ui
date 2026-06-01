@@ -1,26 +1,49 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
+import { getWindowTitlebarSize } from "~/tauri/utils";
 
 export const Route = createFileRoute("/(root)/")({
   component: App,
 });
 
 function App() {
+  const { data: windowTitlebarSize } = useQuery({
+    queryKey: ["windowTitlebarSize"],
+    queryFn: getWindowTitlebarSize,
+  });
+
+  const titlebarHeight = windowTitlebarSize?.logical?.height ?? 0;
+
   const handleWindowPopver = async (evt: any) => {
     const rect = evt.target.getBoundingClientRect();
     invoke("open_window_popover", {
       x: rect.left + rect.width / 2,
-      y: rect.bottom,
-      width: 350,
-      height: 100,
+      y: rect.bottom + titlebarHeight,
+      width: 500,
+      height: 300,
     });
+  };
+
+  const handleWindowPanelShow = async (evt: any) => {
+    const rect = evt.target.getBoundingClientRect();
+    invoke("open_window_panel", {
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + titlebarHeight,
+      width: 500,
+      height: 300,
+    });
+  };
+
+  const handleWindowPanelHide = async (evt: any) => {
+    invoke("close_window_panel");
   };
 
   const handleNativePopver = async (evt: any) => {
     const rect = evt.target.getBoundingClientRect();
     invoke("open_native_popover", {
       x: rect.left + rect.width / 2,
-      y: rect.bottom,
+      y: rect.bottom + titlebarHeight,
       width: 350,
       height: 250,
     });
@@ -33,7 +56,7 @@ function App() {
       text: "About Menu",
       keys: ["⇧", "⌘", "K"],
       x: rect.left + rect.width / 2,
-      y: rect.top - rect.height,
+      y: rect.top - rect.height - 5 + titlebarHeight,
     });
   };
 
@@ -47,8 +70,11 @@ function App() {
       icon: "doc.on.doc.fill",
       iconHex: "#10B981",
       // You can also pass toast position
-      // x: 500,
-      // y: 500,
+      // Both % and absolute values are supported
+      // (x=0.5, y=0.5) => center of the screen | (x=1.0, y=0.9) => bottom right of the screen
+      // (x=100, y=200) => 100 from left & 200 from top of the screeen
+      x: 1,
+      y: 0.9,
     });
   };
 
@@ -81,6 +107,21 @@ function App() {
           onMouseLeave={handleMouseLeave}
         >
           Hover Over
+        </div>
+        <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
+          <button
+            onClick={handleWindowPanelShow}
+            className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+          >
+            Window Panel
+          </button>
+
+          <button
+            onClick={handleWindowPanelHide}
+            className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+          >
+            Hide Window Panel
+          </button>
         </div>
         <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
           <button

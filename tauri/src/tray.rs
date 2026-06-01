@@ -10,8 +10,8 @@ swift_rs::swift!(
 );
 
 swift_rs::swift!(fn open_tray_popover_bridge());
-swift_rs::swift!(pub fn close_tray_popover_bridge());
-swift_rs::swift!(pub fn is_tray_popover_visible_bridge() -> bool);
+swift_rs::swift!(fn close_tray_popover_bridge());
+swift_rs::swift!(fn is_tray_popover_visible_bridge() -> bool);
 
 pub struct ToPopoverOptions {
     pub is_fullsize_content: bool,
@@ -19,7 +19,7 @@ pub struct ToPopoverOptions {
 
 pub trait WindowExt<R: Runtime> {
     fn to_popover(&self, options: Option<ToPopoverOptions>);
-    fn is_tray_popover_shown(&self) -> bool;
+    fn is_tray_popover_visible(&self) -> bool;
     fn open_tray_popover(&self);
     fn close_tray_popover(&self);
 }
@@ -69,7 +69,7 @@ impl<R: Runtime> WindowExt<R> for WebviewWindow<R> {
         *state.0.lock().unwrap() = true;
     }
 
-    fn is_tray_popover_shown(&self) -> bool {
+    fn is_tray_popover_visible(&self) -> bool {
         let state = self.app_handle().state::<AppState>();
         if !*state.0.lock().unwrap() {
             return false;

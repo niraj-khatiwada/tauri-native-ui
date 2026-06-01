@@ -18,12 +18,17 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::open_window_popover,
             commands::close_window_popover,
+            commands::is_window_popover_visible,
+            commands::open_window_panel,
+            commands::close_window_panel,
+            commands::is_window_panel_visible,
             commands::open_native_popover,
             commands::open_native_tooltip,
             commands::close_native_tooltip,
             commands::open_native_toast,
             commands::open_tray_popover,
             commands::close_tray_popover,
+            commands::is_tray_popover_visible,
             commands::focus_or_create_main_window,
             commands::quit_app
         ])
@@ -56,7 +61,7 @@ pub fn run() {
             tray_window.to_popover(None);
 
             let tray = app
-                .tray_by_id(tray_window_label)
+                .tray_by_id(tray_window_label) // tray id from tauri.conf
                 .expect("tray window must exist");
             tray.on_tray_icon_event(move |_, event| match event {
                 TrayIconEvent::Click {
@@ -65,7 +70,11 @@ pub fn run() {
                     ..
                 } => {
                     if button == MouseButton::Left && button_state == MouseButtonState::Up {
-                        tray_window.open_tray_popover();
+                        if tray_window.is_tray_popover_visible() {
+                            tray_window.close_tray_popover();
+                        } else {
+                            tray_window.open_tray_popover();
+                        }
                     }
                 }
                 _ => {}

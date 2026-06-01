@@ -37,17 +37,40 @@ class TooltipManager {
         panel.hasShadow = true
         panel.ignoresMouseEvents = true
         panel.contentViewController = controller
+        
 
         self.activePanel = panel
         self.activeController = controller
-
+        
+        panel.alphaValue = 0.0
         panel.orderFrontRegardless()
+        
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.15
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            panel.animator().alphaValue = 1.0
+        }
+
     }
 
     func hide() {
-        activePanel?.close()
-        activePanel = nil
-        activeController = nil
+        guard let panel = activePanel else { return }
+
+        NSAnimationContext.runAnimationGroup(
+            { context in
+                context.duration = 0.15
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                panel.animator().alphaValue = 0.0
+            },
+            completionHandler: {
+                Task { @MainActor in
+                    panel.close()
+                    if self.activePanel == panel {
+                        self.activePanel = nil
+                        self.activeController = nil
+                    }
+                }
+            })
     }
 
     private func repositionPanel(_ panel: NSPanel, minX: Double, minY: Double) {
@@ -66,17 +89,16 @@ class TooltipManager {
     private func calculatePanelFrame(
         parentWindow: NSWindow, size: NSSize, minX: Double, minY: Double
     ) -> NSRect {
-        let windowFrame = parentWindow.frame
+        guard let parentContentView = parentWindow.contentView else { return .zero }
+        
+        let localX = CGFloat(minX)
+        let localY = parentContentView.bounds.height - CGFloat(minY)
+        
+        let pointInWindow = parentContentView.convert(NSPoint(x: localX, y: localY), to: nil)
+        let pointInScreen = parentWindow.convertToScreen(NSRect(origin: pointInWindow, size: .zero)).origin
 
-        let contentHeight = parentWindow.contentView?.bounds.height ?? windowFrame.height
-        let titlebarHeight = windowFrame.height - contentHeight
-
-        let componentScreenX = windowFrame.origin.x + CGFloat(minX)
-        let componentScreenY =
-            (windowFrame.origin.y + windowFrame.height) - CGFloat(minY) - titlebarHeight
-
-        var panelX = componentScreenX - (size.width / 2)
-        var panelY = componentScreenY + 12
+        var panelX = pointInScreen.x - (size.width / 2)
+        var panelY = pointInScreen.y + 8
 
         let activeScreen = parentWindow.screen ?? NSScreen.main
         if let screen = activeScreen {
@@ -89,7 +111,7 @@ class TooltipManager {
             }
 
             if panelY + size.height > safeBounds.origin.y + safeBounds.size.height {
-                panelY = componentScreenY - size.height - 12
+                panelY = pointInScreen.y - size.height - 12
             } else if panelY < safeBounds.origin.y {
                 panelY = safeBounds.origin.y + 8
             }

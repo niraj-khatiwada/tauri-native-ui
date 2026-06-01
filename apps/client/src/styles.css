@@ -31,10 +31,6 @@ code {
     source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
-#app {
-  /*@apply bg-black/15;*/
-}
-
 ::-webkit-scrollbar-corner {
   @apply bg-zinc-100 dark:bg-zinc-900;
 }

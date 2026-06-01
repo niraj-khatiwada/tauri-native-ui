@@ -2,6 +2,7 @@ pub enum AppWindow {
     Main,
     Popover,
     Tray,
+    Panel,
 }
 
 impl AppWindow {
@@ -10,6 +11,7 @@ impl AppWindow {
             AppWindow::Main => "main",
             AppWindow::Popover => "popover",
             AppWindow::Tray => "tray",
+            AppWindow::Panel => "panel",
         }
     }
 }

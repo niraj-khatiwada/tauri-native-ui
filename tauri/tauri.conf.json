@@ -27,6 +27,7 @@
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
         "alwaysOnTop": true,
+        "acceptFirstMouse": true,
         "windowEffects": {
           "effects": ["sidebar"],
           "state": "active",

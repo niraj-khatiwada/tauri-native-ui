@@ -10,6 +10,7 @@ import "./styles.css";
 import { routeTree } from "./routeTree.gen";
 import PopoverWindow from "./webviews/popover";
 import TrayWindow from "./webviews/tray";
+import PanelWindow from "./webviews/panel";
 
 // See `vite.config.ts` for all defined values.
 window.__appVersion = __appVersion;
@@ -31,11 +32,18 @@ declare module "@tanstack/react-router" {
 
 let defaultRender = <RouterProvider router={router} />;
 
-const hash = window.location.hash as "#popover" | "#tray" | undefined;
+const hash = window.location.hash as
+  | "#popover"
+  | "#tray"
+  | "#panel"
+  | undefined;
+
 if (hash === "#popover") {
   defaultRender = <PopoverWindow />;
 } else if (hash === "#tray") {
   defaultRender = <TrayWindow />;
+} else if (hash === "#panel") {
+  defaultRender = <PanelWindow />;
 }
 
 const rootElement = document.getElementById("app")!;

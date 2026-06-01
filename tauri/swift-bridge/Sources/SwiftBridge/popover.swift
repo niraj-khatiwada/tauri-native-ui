@@ -17,7 +17,6 @@ class NativePopoverManager {
         guard
             let parentWindow = NSApplication.shared.keyWindow ?? NSApplication.shared.windows.first
         else {
-            print("Error: Could not find any active application window.")
             return
         }
         guard let parentContentView = parentWindow.contentView else { return }
@@ -52,7 +51,6 @@ class NativePopoverManager {
 
         self.activePopover = nil
         self.activeController = nil
-        print(" Managed Native Popover references removed and memory recycled.")
     }
 }
 
@@ -68,7 +66,6 @@ class PopoverContentViewController: NSViewController, NSPopoverDelegate {
 
     nonisolated func popoverDidClose(_ notification: Notification) {
         Task { @MainActor in
-            // Empty out the global tracking containers to safely wrap up lifecycle
             NativePopoverManager.shared.activePopover = nil
             NativePopoverManager.shared.activeController = nil
         }

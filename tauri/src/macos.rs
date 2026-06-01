@@ -89,7 +89,7 @@ pub fn show_native_toast(
     }
 }
 
-// show any Tauri window as a popover
+// show any Tauri window as a popover (NSPopover)
 #[cfg(target_os = "macos")]
 swift_rs::swift!(fn show_window_as_popover_bridge(window_raw_ptr: *mut c_void, x: f64, y: f64));
 
@@ -109,4 +109,42 @@ pub fn close_window_as_popover() {
     unsafe {
         close_window_as_popover_bridge();
     }
+}
+
+#[cfg(target_os = "macos")]
+swift_rs::swift!(fn is_window_as_popover_visible_bridge() -> bool);
+
+#[cfg(target_os = "macos")]
+pub fn is_window_as_popover_visible() -> bool {
+    unsafe { is_window_as_popover_visible_bridge() }
+}
+
+// show any Tauri window as panel (NSPanel)
+#[cfg(target_os = "macos")]
+swift_rs::swift!(fn show_window_as_panel_bridge(window_raw_ptr: *mut c_void, x: f64, y: f64));
+
+#[cfg(target_os = "macos")]
+pub fn show_window_as_panel(window: &WebviewWindow, x: f64, y: f64) {
+    unsafe {
+        let raw_window_ptr = window.ns_window().unwrap() as *mut c_void;
+        show_window_as_panel_bridge(raw_window_ptr, x, y);
+    }
+}
+
+#[cfg(target_os = "macos")]
+swift_rs::swift!(fn close_window_as_panel_bridge());
+
+#[cfg(target_os = "macos")]
+pub fn close_window_as_panel() {
+    unsafe {
+        close_window_as_panel_bridge();
+    }
+}
+
+#[cfg(target_os = "macos")]
+swift_rs::swift!(fn is_window_as_panel_visible_bridge() -> bool);
+
+#[cfg(target_os = "macos")]
+pub fn is_window_as_panel_visible() -> bool {
+    unsafe { is_window_as_panel_visible_bridge() }
 }

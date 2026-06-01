@@ -76,33 +76,37 @@ class NativeToastManager {
     private func calculateToastFrame(
         parentWindow: NSWindow, size: NSSize, minX: Double, minY: Double
     ) -> NSRect {
-        let windowFrame = parentWindow.frame
+        let activeScreen = parentWindow.screen ?? NSScreen.main ?? NSScreen.screens.first
+        guard let screen = activeScreen else { return .zero }
 
-        let contentHeight = parentWindow.contentView?.bounds.height ?? windowFrame.height
-        let titlebarHeight = windowFrame.height - contentHeight
+        let screenFrame = screen.frame
+        let safeBounds = screen.visibleFrame
 
-        let componentScreenX = windowFrame.origin.x + CGFloat(minX)
-        let componentScreenY =
-            (windowFrame.origin.y + windowFrame.height) - CGFloat(minY) - titlebarHeight
+        let targetScreenX: CGFloat
+        let targetScreenY: CGFloat
 
-        var panelX = componentScreenX - (size.width / 2)
-        var panelY = componentScreenY + 16
+        if minX <= 1.0 && minY <= 1.0 {
+            targetScreenX = screenFrame.origin.x + (screenFrame.width * CGFloat(minX))
+            targetScreenY =
+                screenFrame.origin.y + screenFrame.height - (screenFrame.height * CGFloat(minY))
+        } else {
+            targetScreenX = screenFrame.origin.x + CGFloat(minX)
+            targetScreenY = screenFrame.origin.y + screenFrame.height - CGFloat(minY)
+        }
 
-        let activeScreen = parentWindow.screen ?? NSScreen.main
-        if let screen = activeScreen {
-            let safeBounds = screen.visibleFrame
+        var panelX = targetScreenX - (size.width / 2)
+        var panelY = targetScreenY - size.height
 
-            if panelX < safeBounds.origin.x {
-                panelX = safeBounds.origin.x + 12
-            } else if panelX + size.width > safeBounds.origin.x + safeBounds.size.width {
-                panelX = (safeBounds.origin.x + safeBounds.size.width) - size.width - 12
-            }
+        if panelX < safeBounds.origin.x {
+            panelX = safeBounds.origin.x + 12
+        } else if panelX + size.width > safeBounds.origin.x + safeBounds.size.width {
+            panelX = (safeBounds.origin.x + safeBounds.size.width) - size.width - 12
+        }
 
-            if panelY + size.height > safeBounds.origin.y + safeBounds.size.height {
-                panelY = componentScreenY - size.height - 16
-            } else if panelY < safeBounds.origin.y {
-                panelY = safeBounds.origin.y + 12
-            }
+        if panelY < safeBounds.origin.y {
+            panelY = safeBounds.origin.y + 12
+        } else if panelY + size.height > safeBounds.origin.y + safeBounds.size.height {
+            panelY = (safeBounds.origin.y + safeBounds.size.height) - size.height - 12
         }
 
         return NSRect(origin: NSPoint(x: panelX, y: panelY), size: size)

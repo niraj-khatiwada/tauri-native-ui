@@ -1,7 +1,7 @@
 import Cocoa
 import SwiftRs
 
-struct SendableWindowPointer: Sendable {
+struct WindowAsPopoverSendableWindowPointer: Sendable {
     let address: Int
 
     var rawPointer: OpaquePointer {
@@ -13,12 +13,12 @@ struct SendableWindowPointer: Sendable {
 class WindowAsPopoverManager {
     static let shared = WindowAsPopoverManager()
 
-    private var activePopover: NSPopover?
+    public var activePopover: NSPopover?
     private var activeAnchorWindow: NSWindow?
 
     private var isCleaningUp = false
 
-    func show(sendablePtr: SendableWindowPointer, x: Double, y: Double) {
+    func show(sendablePtr: WindowAsPopoverSendableWindowPointer, x: Double, y: Double) {
         self.stopObservingGlobalEvents()
         self.closeActivePopover()
 
@@ -116,6 +116,10 @@ class WindowAsPopoverManager {
         isCleaningUp = false
     }
 
+    func isPopoverOpened() -> Bool {
+        return activePopover?.isShown ?? false
+    }
+
     private func stopObservingGlobalEvents() {
         NotificationCenter.default.removeObserver(
             self, name: NSWindow.didMoveNotification, object: nil)
@@ -127,7 +131,7 @@ class WindowAsPopoverManager {
 @_cdecl("show_window_as_popover_bridge")
 public func showWindowAsPopover(windowRawPtr: OpaquePointer, x: Double, y: Double) {
     let ptrInt = Int(bitPattern: windowRawPtr)
-    let sendableContainer = SendableWindowPointer(address: ptrInt)
+    let sendableContainer = WindowAsPopoverSendableWindowPointer(address: ptrInt)
 
     DispatchQueue.main.async {
         WindowAsPopoverManager.shared.show(sendablePtr: sendableContainer, x: x, y: y)
@@ -138,5 +142,16 @@ public func showWindowAsPopover(windowRawPtr: OpaquePointer, x: Double, y: Doubl
 public func closeWindowAsPopover() {
     DispatchQueue.main.async {
         WindowAsPopoverManager.shared.closeActivePopover()
+    }
+}
+
+@_cdecl("is_window_as_popover_visible_bridge")
+public func isWindowAsPopoverVisible() -> Bool {
+    if Thread.isMainThread {
+        return MainActor.assumeIsolated { WindowAsPopoverManager.shared.isPopoverOpened() }
+    } else {
+        return DispatchQueue.main.sync {
+            return MainActor.assumeIsolated { WindowAsPopoverManager.shared.isPopoverOpened() }
+        }
     }
 }

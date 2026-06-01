@@ -3,6 +3,7 @@ import { useState } from "react";
 
 export default function PopoverWindow() {
   const [counter, setCounter] = useState<number>(0);
+
   const handleCopySuccess = () => {
     invoke("open_native_toast", {
       text: "Copied configuration token to clipboard",
