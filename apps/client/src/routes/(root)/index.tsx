@@ -25,9 +25,10 @@ function App() {
     });
   };
 
-  const handleWindowPanelShow = async (evt: any) => {
+  const handleWindowPanelShow = async (evt: any, panelId: string) => {
     const rect = evt.target.getBoundingClientRect();
     invoke("open_window_panel", {
+      panelId,
       x: rect.left + rect.width / 2,
       y: rect.bottom + titlebarHeight,
       width: 500,
@@ -35,8 +36,10 @@ function App() {
     });
   };
 
-  const handleWindowPanelHide = async (evt: any) => {
-    invoke("close_window_panel");
+  const handleWindowPanelHide = async (panelId: string) => {
+    invoke("close_window_panel", {
+      panelId,
+    });
   };
 
   const handleNativePopver = async (evt: any) => {
@@ -110,17 +113,30 @@ function App() {
         </div>
         <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
           <button
-            onClick={handleWindowPanelShow}
+            onClick={(evt) => handleWindowPanelShow(evt, "1")}
             className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
           >
-            Window Panel
+            Show Window Panel 1
           </button>
 
           <button
-            onClick={handleWindowPanelHide}
+            onClick={() => handleWindowPanelHide("1")}
             className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
           >
-            Hide Window Panel
+            Hide Window Panel 1
+          </button>
+          <button
+            onClick={(evt) => handleWindowPanelShow(evt, "2")}
+            className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+          >
+            Show Window Panel 2
+          </button>
+
+          <button
+            onClick={() => handleWindowPanelHide("2")}
+            className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+          >
+            Hide Window Panel 2
           </button>
         </div>
         <div className="w-full flex items-center justify-center gap-2 text-white text-xs">

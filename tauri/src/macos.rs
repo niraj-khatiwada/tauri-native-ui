@@ -89,7 +89,7 @@ pub fn show_native_toast(
     }
 }
 
-// show any Tauri window as a popover (NSPopover)
+// show any Tauri window as a popover (NSPopover): we can only have 1 popover at a time
 #[cfg(target_os = "macos")]
 swift_rs::swift!(fn show_window_as_popover_bridge(window_raw_ptr: *mut c_void, x: f64, y: f64));
 
@@ -119,32 +119,42 @@ pub fn is_window_as_popover_visible() -> bool {
     unsafe { is_window_as_popover_visible_bridge() }
 }
 
-// show any Tauri window as panel (NSPanel)
+// show any Tauri window as panel (NSPanel): we can have multiple panels at a time
 #[cfg(target_os = "macos")]
-swift_rs::swift!(fn show_window_as_panel_bridge(window_raw_ptr: *mut c_void, x: f64, y: f64));
+swift_rs::swift!(fn show_window_as_panel_bridge(panel_id: SRString, window_raw_ptr: *mut c_void, x: f64, y: f64));
 
 #[cfg(target_os = "macos")]
-pub fn show_window_as_panel(window: &WebviewWindow, x: f64, y: f64) {
+pub fn show_window_as_panel(panel_id: &str, window: &WebviewWindow, x: f64, y: f64) {
     unsafe {
         let raw_window_ptr = window.ns_window().unwrap() as *mut c_void;
-        show_window_as_panel_bridge(raw_window_ptr, x, y);
+        show_window_as_panel_bridge(SRString::from(panel_id), raw_window_ptr, x, y);
     }
 }
 
 #[cfg(target_os = "macos")]
-swift_rs::swift!(fn close_window_as_panel_bridge());
+swift_rs::swift!(fn close_window_as_panel_bridge(panel_id: SRString));
 
 #[cfg(target_os = "macos")]
-pub fn close_window_as_panel() {
+pub fn close_window_as_panel(panel_id: &str) {
     unsafe {
-        close_window_as_panel_bridge();
+        close_window_as_panel_bridge(SRString::from(panel_id));
     }
 }
 
 #[cfg(target_os = "macos")]
-swift_rs::swift!(fn is_window_as_panel_visible_bridge() -> bool);
+swift_rs::swift!(fn is_window_as_panel_visible_bridge(panel_id: SRString) -> bool);
 
 #[cfg(target_os = "macos")]
-pub fn is_window_as_panel_visible() -> bool {
-    unsafe { is_window_as_panel_visible_bridge() }
+pub fn is_window_as_panel_visible(panel_id: &str) -> bool {
+    unsafe { is_window_as_panel_visible_bridge(SRString::from(panel_id)) }
+}
+
+#[cfg(target_os = "macos")]
+swift_rs::swift!(fn move_window_as_panel_bridge(panel_id: SRString, x: f64, y: f64));
+
+#[cfg(target_os = "macos")]
+pub fn move_window_as_panel(panel_id: &str, x: f64, y: f64) {
+    unsafe {
+        move_window_as_panel_bridge(SRString::from(panel_id), x, y);
+    }
 }

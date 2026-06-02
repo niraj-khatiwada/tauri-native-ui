@@ -43,7 +43,12 @@ if (hash === "#popover") {
 } else if (hash === "#tray") {
   defaultRender = <TrayWindow />;
 } else if (hash === "#panel") {
-  defaultRender = <PanelWindow />;
+  let panelId: string | null;
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    panelId = searchParams.get("panelId");
+  } catch {}
+  defaultRender = <PanelWindow panelId={panelId!} />;
 }
 
 const rootElement = document.getElementById("app")!;

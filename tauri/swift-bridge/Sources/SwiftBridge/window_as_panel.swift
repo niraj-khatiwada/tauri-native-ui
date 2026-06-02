@@ -10,10 +10,20 @@ struct WindowAsPanelSendableWindowPointer: Sendable {
 }
 
 @MainActor
+private final class PanelInstanceContainer {
+    let panel: HoverResponsivePanel
+    var trackingArea: NSTrackingArea?
+    
+    init(panel: HoverResponsivePanel, trackingArea: NSTrackingArea? = nil) {
+        self.panel = panel
+        self.trackingArea = trackingArea
+    }
+}
+
+@MainActor
 private final class WindowAsPanelPanelStorage {
-    static var sharedPanel: NSPanel? = nil
+    static var activePanels: [String: PanelInstanceContainer] = [:]
     static var isCleaningUp = false
-    static var activeTrackingArea: NSTrackingArea? = nil
 }
 
 class HoverResponsivePanel: NSPanel {
@@ -64,9 +74,9 @@ class SwiftDragHandleView: NSView {
 class WindowAsPanelManager {
     static let shared = WindowAsPanelManager()
 
-    private func getOrCreatePanel() -> NSPanel {
-        if let existingPanel = WindowAsPanelPanelStorage.sharedPanel {
-            return existingPanel
+    private func getOrCreatePanel(for id: String) -> HoverResponsivePanel {
+        if let container = WindowAsPanelPanelStorage.activePanels[id] {
+            return container.panel
         }
 
         let panel = HoverResponsivePanel(
@@ -92,16 +102,17 @@ class WindowAsPanelManager {
             .stationary
         ]
 
-        WindowAsPanelPanelStorage.sharedPanel = panel
+        let newContainer = PanelInstanceContainer(panel: panel)
+        WindowAsPanelPanelStorage.activePanels[id] = newContainer
         return panel
     }
 
-    func show(sendablePtr: WindowAsPanelSendableWindowPointer, x: Double, y: Double) {
-        if WindowAsPanelPanelStorage.sharedPanel != nil {
-            clearCurrentPanelContents()
+    func show(id: String, sendablePtr: WindowAsPanelSendableWindowPointer, x: Double, y: Double) {
+        if WindowAsPanelPanelStorage.activePanels[id] != nil {
+            clearPanelContents(for: id)
         }
         
-        let panel = getOrCreatePanel()
+        let panel = getOrCreatePanel(for: id)
 
         let rawUnsafe = UnsafeMutableRawPointer(sendablePtr.rawPointer)
         let sourceWindow = Unmanaged<NSWindow>.fromOpaque(rawUnsafe).takeUnretainedValue()
@@ -132,8 +143,11 @@ class WindowAsPanelManager {
 
         let customCornerRadius: CGFloat = 20.0
 
+        let containerView = NSView(frame: NSRect(origin: .zero, size: targetSize))
+        containerView.autoresizingMask = [.width, .height]
+
         let visualEffectView = NSVisualEffectView()
-        visualEffectView.frame = NSRect(origin: .zero, size: targetSize)
+        visualEffectView.frame = containerView.bounds
         visualEffectView.autoresizingMask = [.width, .height]
         
         visualEffectView.wantsLayer = true
@@ -148,8 +162,6 @@ class WindowAsPanelManager {
         stolenView.autoresizingMask = [.width, .height]
         stolenView.wantsLayer = true
         stolenView.layer?.backgroundColor = NSColor.clear.cgColor
-        stolenView.layer?.cornerRadius = customCornerRadius
-        stolenView.layer?.masksToBounds = true
 
         visualEffectView.addSubview(stolenView)
         
@@ -159,51 +171,54 @@ class WindowAsPanelManager {
         dragHandle.autoresizingMask = [.width, .minYMargin]
         visualEffectView.addSubview(dragHandle)
 
-        panel.contentView = visualEffectView
+        containerView.addSubview(visualEffectView)
+        panel.contentView = containerView
+        
         WindowAsPanelPanelStorage.isCleaningUp = false
 
         panel.orderFrontRegardless()
         panel.makeKey()
         
-        if let frameView = panel.contentView?.superview {
-            frameView.wantsLayer = true
-            frameView.layer?.isOpaque = false
-            frameView.layer?.backgroundColor = NSColor.clear.cgColor
-            
-            let maskLayer = CAShapeLayer()
-            let path = CGPath(
-                roundedRect: CGRect(origin: .zero, size: targetSize),
-                cornerWidth: customCornerRadius,
-                cornerHeight: customCornerRadius,
-                transform: nil
-            )
-            maskLayer.path = path
-            
-            frameView.layer?.mask = maskLayer
-            frameView.layer?.masksToBounds = true
-        }
-        
         panel.invalidateShadow()
         
         let trackingArea = NSTrackingArea(
-            rect: visualEffectView.bounds,
+            rect: containerView.bounds,
             options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-            owner: visualEffectView,
+            owner: containerView,
             userInfo: nil
         )
-        visualEffectView.addTrackingArea(trackingArea)
-        WindowAsPanelPanelStorage.activeTrackingArea = trackingArea
+        containerView.addTrackingArea(trackingArea)
+        
+        if let container = WindowAsPanelPanelStorage.activePanels[id] {
+            container.trackingArea = trackingArea
+        }
         
         WindowAsPanelPanelStorage.isCleaningUp = false
     }
 
-    private func clearCurrentPanelContents() {
-        guard let panel = WindowAsPanelPanelStorage.sharedPanel else { return }
+    func movePanel(id: String, x: Double, y: Double) {
+        guard let container = WindowAsPanelPanelStorage.activePanels[id] else { return }
+        let panel = container.panel
+        
+        guard let primaryScreen = panel.screen ?? NSScreen.main else { return }
+        let screenFrame = primaryScreen.frame
+        let targetSize = panel.frame.size
+        
+        let panelX = screenFrame.origin.x + CGFloat(x)
+        let panelY = screenFrame.origin.y + (screenFrame.size.height - CGFloat(y)) - targetSize.height
+        
+        let panelRect = NSRect(origin: NSPoint(x: panelX, y: panelY), size: targetSize)
+        panel.setFrame(panelRect, display: true, animate: false)
+    }
+
+    private func clearPanelContents(for id: String) {
+        guard let container = WindowAsPanelPanelStorage.activePanels[id] else { return }
+        let panel = container.panel
         
         if let content = panel.contentView {
-            if let tracking = WindowAsPanelPanelStorage.activeTrackingArea {
+            if let tracking = container.trackingArea {
                 content.removeTrackingArea(tracking)
-                WindowAsPanelPanelStorage.activeTrackingArea = nil
+                container.trackingArea = nil
             }
             
             for subview in content.subviews {
@@ -213,45 +228,62 @@ class WindowAsPanelManager {
         panel.contentView = nil
     }
 
-    func closeActivePanel() {
+    func closePanel(id: String) {
         guard !WindowAsPanelPanelStorage.isCleaningUp,
-              let panel = WindowAsPanelPanelStorage.sharedPanel,
-              panel.isVisible
+              let container = WindowAsPanelPanelStorage.activePanels[id],
+              container.panel.isVisible
         else { return }
 
         WindowAsPanelPanelStorage.isCleaningUp = true
+        
+        let panel = container.panel
         panel.orderOut(nil)
         
-        clearCurrentPanelContents()
+        clearPanelContents(for: id)
+        
+        WindowAsPanelPanelStorage.activePanels.removeValue(forKey: id)
         
         WindowAsPanelPanelStorage.isCleaningUp = false
     }
 }
 
 @_cdecl("show_window_as_panel_bridge")
-public func showWindowAsPanel(windowRawPtr: OpaquePointer, x: Double, y: Double) {
+public func showWindowAsPanel(id: SRString, windowRawPtr: OpaquePointer, x: Double, y: Double) {
+    let idStr = id.toString()
     let ptrInt = Int(bitPattern: windowRawPtr)
     let sendableContainer = WindowAsPanelSendableWindowPointer(address: ptrInt)
 
     DispatchQueue.main.async {
-        WindowAsPanelManager.shared.show(sendablePtr: sendableContainer, x: x, y: y)
+        WindowAsPanelManager.shared.show(id: idStr, sendablePtr: sendableContainer, x: x, y: y)
+    }
+}
+
+@_cdecl("move_window_as_panel_bridge")
+public func moveWindowAsPanel(id: SRString, x: Double, y: Double) {
+    let idStr = id.toString()
+    DispatchQueue.main.async {
+        WindowAsPanelManager.shared.movePanel(id: idStr, x: x, y: y)
     }
 }
 
 @_cdecl("close_window_as_panel_bridge")
-public func closeWindowAsPanel() {
+public func closeWindowAsPanel(id: SRString) {
+    let idStr = id.toString()
+        
     DispatchQueue.main.async {
-        WindowAsPanelManager.shared.closeActivePanel()
+        WindowAsPanelManager.shared.closePanel(id: idStr)
     }
 }
 
 @_cdecl("is_window_as_panel_visible_bridge")
-public func isWindowAsPanelVisible() -> Bool {
+public func isWindowAsPanelVisible(id: SRString) -> Bool {
+    let idStr = id.toString()
+    
     if Thread.isMainThread {
-        return MainActor.assumeIsolated { WindowAsPanelPanelStorage.sharedPanel?.isVisible ?? false }
+        return MainActor.assumeIsolated { WindowAsPanelPanelStorage.activePanels[idStr]?.panel.isVisible ?? false }
     } else {
         return DispatchQueue.main.sync {
-            return MainActor.assumeIsolated { WindowAsPanelPanelStorage.sharedPanel?.isVisible ?? false }
+            return MainActor.assumeIsolated { WindowAsPanelPanelStorage.activePanels[idStr]?.panel.isVisible ?? false }
         }
     }
 }

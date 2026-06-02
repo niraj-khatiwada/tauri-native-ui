@@ -1,13 +1,16 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export default function PanelWindow() {
+export default function PanelWindow({ panelId }: { panelId: string }) {
   const handleClosePanel = () => {
-    invoke("close_window_panel");
+    invoke("close_window_panel", {
+      panelId,
+    });
   };
 
   return (
     <>
-      <div className="p-4 w-screen h-screen">
+      <div className="p-4 w-screen h-screen my-4">
+        <h1 className="text-2xl text-center text-white">Pane id @{panelId}</h1>
         <p className="text-white">
           These panels are different than the normal Tauri transparent window.
           They do not lose focus of the main window.

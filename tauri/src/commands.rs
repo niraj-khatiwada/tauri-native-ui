@@ -30,7 +30,6 @@ pub fn open_window_popover(
         let app_clone = app_handle.clone();
         window.on_window_event(move |event| {
             if let tauri::WindowEvent::Destroyed = event {
-                println!("OLD POPOVER DESTROYED");
                 let current_window_clone = current_window.clone();
                 let app_deferred = app_clone.clone();
                 tauri::async_runtime::spawn(async move {
@@ -81,6 +80,7 @@ fn create_fresh_popover(
     .decorations(false)
     .transparent(true)
     .visible(false)
+    .accept_first_mouse(true)
     .inner_size(width, height)
     .on_page_load(move |window, payload| {
         if let PageLoadEvent::Finished = payload.event() {
@@ -89,9 +89,7 @@ fn create_fresh_popover(
     })
     .build()
     {
-        Ok(_) => {
-            println!("FRESH POPOVER CREATED");
-        }
+        Ok(_) => {}
         Err(_) => {}
     }
 }
@@ -102,14 +100,20 @@ pub fn is_window_popover_visible() -> bool {
 }
 
 #[tauri::command]
-pub fn close_window_popover() {
+pub fn close_window_popover(app_handle: AppHandle) {
     macos::close_window_as_popover();
+
+    let popover_window_label = domain::AppWindow::Popover.as_str();
+    if let Some(window) = app_handle.get_webview_window(&popover_window_label) {
+        let _ = window.destroy();
+    }
 }
 
 #[tauri::command]
 pub fn open_window_panel(
     app_handle: AppHandle,
     current_window: WebviewWindow,
+    panel_id: String,
     x: f64,
     y: f64,
     width: f64,
@@ -121,32 +125,15 @@ pub fn open_window_panel(
     let target_x = logical_position.x + x;
     let target_y = logical_position.y + y;
 
-    let panel_window_label = domain::AppWindow::Panel.as_str();
+    let panel_window_label = domain::AppWindow::Panel.get_panel_window_label_by_id(&panel_id);
 
-    if let Some(window) = app_handle.get_webview_window(panel_window_label) {
-        let app_clone = app_handle.clone();
-        window.on_window_event(move |event| {
-            if let tauri::WindowEvent::Destroyed = event {
-                println!("OLD PANEL DESTROYED");
-                let current_window_clone = current_window.clone();
-                let app_deferred = app_clone.clone();
-                tauri::async_runtime::spawn(async move {
-                    create_fresh_panel(
-                        &app_deferred,
-                        &current_window_clone,
-                        target_x,
-                        target_y,
-                        width,
-                        height,
-                    );
-                });
-            }
-        });
-        let _ = window.destroy();
+    if let Some(_) = app_handle.get_webview_window(&panel_window_label) {
+        macos::move_window_as_panel(&panel_id, target_x, target_y);
     } else {
         create_fresh_panel(
             &app_handle,
             &current_window,
+            panel_id,
             target_x,
             target_y,
             width,
@@ -158,15 +145,21 @@ pub fn open_window_panel(
 fn create_fresh_panel(
     app_handle: &AppHandle,
     parent_window: &WebviewWindow,
+    panel_id: String,
     target_x: f64,
     target_y: f64,
     width: f64,
     height: f64,
 ) {
-    let panel_window_label = domain::AppWindow::Panel.as_str();
+    let panel = domain::AppWindow::Panel;
+    let panel_window_label = panel.get_panel_window_label_by_id(&panel_id);
 
     let mut panel_url = parent_window.url().unwrap();
-    panel_url.set_fragment(Some(panel_window_label));
+    {
+        let mut query_pairs = panel_url.query_pairs_mut();
+        query_pairs.append_pair("panelId", &panel_id);
+    }
+    panel_url.set_fragment(Some(panel.as_str()));
 
     match WebviewWindowBuilder::new(
         app_handle,
@@ -178,29 +171,33 @@ fn create_fresh_panel(
     .decorations(false)
     .transparent(true)
     .visible(false)
+    .accept_first_mouse(true)
     .inner_size(width, height)
     .on_page_load(move |window, payload| {
         if let PageLoadEvent::Finished = payload.event() {
-            macos::show_window_as_panel(&window, target_x, target_y);
+            macos::show_window_as_panel(&panel_id, &window, target_x, target_y);
         }
     })
     .build()
     {
-        Ok(_) => {
-            println!("FRESH PANEL CREATED");
-        }
+        Ok(_) => {}
         Err(_) => {}
     }
 }
 
 #[tauri::command]
-pub fn is_window_panel_visible() -> bool {
-    macos::is_window_as_panel_visible()
+pub fn is_window_panel_visible(panel_id: String) -> bool {
+    macos::is_window_as_panel_visible(&panel_id)
 }
 
 #[tauri::command]
-pub fn close_window_panel() {
-    macos::close_window_as_panel();
+pub fn close_window_panel(app_handle: AppHandle, panel_id: String) {
+    macos::close_window_as_panel(&panel_id);
+
+    let panel_window_label = domain::AppWindow::Panel.get_panel_window_label_by_id(&panel_id);
+    if let Some(window) = app_handle.get_webview_window(&panel_window_label) {
+        let _ = window.destroy();
+    }
 }
 
 #[tauri::command]

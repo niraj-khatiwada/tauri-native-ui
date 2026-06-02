@@ -19,6 +19,11 @@ export default function PopoverWindow() {
       iconHex: "#FF6060",
     });
   };
+
+  const handleClosePopover = () => {
+    invoke("close_window_popover");
+  };
+
   return (
     <div className="p-4 w-screen h-screen">
       <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
@@ -41,6 +46,14 @@ export default function PopoverWindow() {
           className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
         >
           Show Error Toast
+        </button>
+      </div>
+      <div className="w-full flex items-center justify-center gap-2 text-white text-xs">
+        <button
+          onClick={handleClosePopover}
+          className="bg-blue-600 px-4 py-1 rounded-md text-xs w-fit"
+        >
+          Close Popover
         </button>
       </div>
     </div>
