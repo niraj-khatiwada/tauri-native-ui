@@ -12,10 +12,12 @@ struct WindowAsPanelSendableWindowPointer: Sendable {
 @MainActor
 private final class PanelInstanceContainer {
     let panel: HoverResponsivePanel
+    weak var sourceWindow: NSWindow?
     var trackingArea: NSTrackingArea?
     
-    init(panel: HoverResponsivePanel, trackingArea: NSTrackingArea? = nil) {
+    init(panel: HoverResponsivePanel, sourceWindow: NSWindow? = nil, trackingArea: NSTrackingArea? = nil) {
         self.panel = panel
+        self.sourceWindow = sourceWindow
         self.trackingArea = trackingArea
     }
 }
@@ -58,7 +60,11 @@ class SwiftDragHandleView: NSView {
     
     override func mouseDown(with event: NSEvent) {
         if let window = self.window {
-            window.performDrag(with: event)
+            if let parentPanel = window.parent as? NSPanel {
+                parentPanel.performDrag(with: event)
+            } else {
+                window.performDrag(with: event)
+            }
         } else {
             super.mouseDown(with: event)
         }
@@ -117,26 +123,16 @@ class WindowAsPanelManager {
         let rawUnsafe = UnsafeMutableRawPointer(sendablePtr.rawPointer)
         let sourceWindow = Unmanaged<NSWindow>.fromOpaque(rawUnsafe).takeUnretainedValue()
 
-        guard let stolenView = sourceWindow.contentView else { return }
-        
         if let parent = sourceWindow.parent {
             parent.removeChildWindow(sourceWindow)
         }
-
-        let placeholder = NSView()
-        sourceWindow.contentView = placeholder
-        sourceWindow.orderOut(nil)
 
         guard let primaryScreen = sourceWindow.screen ?? NSScreen.main else { return }
         let screenFrame = primaryScreen.frame
         let targetSize = sourceWindow.frame.size
 
-        let windowFrameHeight = sourceWindow.frame.height
-        let contentBoundsHeight = stolenView.bounds.height
-        let titlebarHeight = windowFrameHeight - contentBoundsHeight
-
         let panelX = screenFrame.origin.x + CGFloat(x)
-        let panelY = screenFrame.origin.y + (screenFrame.size.height - CGFloat(y)) - targetSize.height - titlebarHeight
+        let panelY = screenFrame.origin.y + (screenFrame.size.height - CGFloat(y)) - targetSize.height
 
         let panelRect = NSRect(origin: NSPoint(x: panelX, y: panelY), size: targetSize)
         panel.setFrame(panelRect, display: true, animate: false)
@@ -153,18 +149,10 @@ class WindowAsPanelManager {
         visualEffectView.wantsLayer = true
         visualEffectView.layer?.masksToBounds = true
         visualEffectView.layer?.cornerRadius = customCornerRadius
-        
         visualEffectView.material = .popover
         visualEffectView.blendingMode = .withinWindow
         visualEffectView.state = .active
 
-        stolenView.frame = visualEffectView.bounds
-        stolenView.autoresizingMask = [.width, .height]
-        stolenView.wantsLayer = true
-        stolenView.layer?.backgroundColor = NSColor.clear.cgColor
-
-        visualEffectView.addSubview(stolenView)
-        
         let handleHeight: CGFloat = 16.0
         let dragHandle = SwiftDragHandleView()
         dragHandle.frame = NSRect(x: 0, y: targetSize.height - handleHeight, width: targetSize.width, height: handleHeight)
@@ -173,12 +161,20 @@ class WindowAsPanelManager {
 
         containerView.addSubview(visualEffectView)
         panel.contentView = containerView
+
+        sourceWindow.styleMask = [.borderless]
+        sourceWindow.isOpaque = false
+        sourceWindow.backgroundColor = .clear
+        sourceWindow.hasShadow = false
+        
+        sourceWindow.setFrame(NSRect(x: panelX, y: panelY, width: targetSize.width, height: targetSize.height - handleHeight), display: true)
+
+        panel.addChildWindow(sourceWindow, ordered: .above)
         
         WindowAsPanelPanelStorage.isCleaningUp = false
 
         panel.orderFrontRegardless()
         panel.makeKey()
-        
         panel.invalidateShadow()
         
         let trackingArea = NSTrackingArea(
@@ -190,6 +186,7 @@ class WindowAsPanelManager {
         containerView.addTrackingArea(trackingArea)
         
         if let container = WindowAsPanelPanelStorage.activePanels[id] {
+            container.sourceWindow = sourceWindow
             container.trackingArea = trackingArea
         }
         
@@ -209,18 +206,27 @@ class WindowAsPanelManager {
         
         let panelRect = NSRect(origin: NSPoint(x: panelX, y: panelY), size: targetSize)
         panel.setFrame(panelRect, display: true, animate: false)
+        
+        if let sourceWindow = container.sourceWindow {
+            let handleHeight: CGFloat = 16.0
+            sourceWindow.setFrame(NSRect(x: panelX, y: panelY, width: targetSize.width, height: targetSize.height - handleHeight), display: true)
+        }
     }
 
     private func clearPanelContents(for id: String) {
         guard let container = WindowAsPanelPanelStorage.activePanels[id] else { return }
         let panel = container.panel
         
+        if let sourceWindow = container.sourceWindow {
+            panel.removeChildWindow(sourceWindow)
+            sourceWindow.orderOut(nil)
+        }
+        
         if let content = panel.contentView {
             if let tracking = container.trackingArea {
                 content.removeTrackingArea(tracking)
                 container.trackingArea = nil
             }
-            
             for subview in content.subviews {
                 subview.removeFromSuperview()
             }
@@ -242,7 +248,6 @@ class WindowAsPanelManager {
         clearPanelContents(for: id)
         
         WindowAsPanelPanelStorage.activePanels.removeValue(forKey: id)
-        
         WindowAsPanelPanelStorage.isCleaningUp = false
     }
 }

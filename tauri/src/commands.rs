@@ -234,10 +234,16 @@ pub fn open_tray_popover(app_handle: AppHandle) {
 }
 
 #[tauri::command]
-pub fn close_tray_popover(app_handle: AppHandle) {
+pub fn close_tray_popover(app_handle: AppHandle, suspend: bool) {
     match app_handle.get_webview_window(domain::AppWindow::Tray.as_str()) {
         Some(tray_window) => {
             tray_window.close_tray_popover();
+            if suspend {
+                let tray_window_label = domain::AppWindow::Tray.as_str();
+                if let Some(window) = app_handle.get_webview_window(&tray_window_label) {
+                    let _ = window.destroy();
+                }
+            }
         }
         None => {
             println!("tray window not found");
@@ -278,8 +284,14 @@ pub fn focus_or_create_main_window(app_handle: tauri::AppHandle) -> Result<(), S
 
             let main_window = WebviewWindowBuilder::from_config(&app_handle, &window_config)
                 .map_err(|e| e.to_string())?
+                .on_page_load(move |window, payload| {
+                    if let PageLoadEvent::Finished = payload.event() {
+                        let _ = window.show().map_err(|e| e.to_string());
+                    }
+                })
                 .build()
                 .map_err(|e| e.to_string())?;
+
             macos::hide_traffic_light_buttons(&main_window);
         }
     }

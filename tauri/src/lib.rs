@@ -1,6 +1,7 @@
 use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
-    Manager, WebviewUrl, WebviewWindowBuilder,
+    webview::PageLoadEvent,
+    AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
 
 use crate::tray::WindowExt;
@@ -9,6 +10,26 @@ mod commands;
 mod domain;
 mod macos;
 mod tray;
+
+fn create_tray_window(app_handle: &AppHandle, label: &str) -> Result<WebviewWindow, String> {
+    let main_window = app_handle
+        .get_webview_window(domain::AppWindow::Main.as_str())
+        .expect("main window must exist");
+
+    let mut tray_url = main_window.url().map_err(|err| err.to_string())?;
+    tray_url.set_fragment(Some(label));
+
+    let tray_window =
+        WebviewWindowBuilder::new(app_handle, label, WebviewUrl::CustomProtocol(tray_url))
+            .decorations(false)
+            .transparent(true)
+            .visible(false)
+            .inner_size(400.0, 500.0)
+            .build()
+            .map_err(|err| err.to_string())?;
+
+    Ok(tray_window)
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -40,29 +61,17 @@ pub fn run() {
             macos::hide_traffic_light_buttons(&main_window);
 
             let tray_window_label = domain::AppWindow::Tray.as_str();
-            let mut tray_url = main_window.url().expect("main window url must exist");
-            tray_url.set_fragment(Some(tray_window_label));
-
-            let tray_window = WebviewWindowBuilder::new(
-                &app_handle,
-                tray_window_label,
-                WebviewUrl::CustomProtocol(tray_url),
-            )
-            .parent(&main_window)
-            .expect("main parent window must exist")
-            .decorations(false)
-            .transparent(true)
-            .visible(false)
-            .inner_size(400.0, 500.0)
-            .build()
-            .expect("tray window must initialize");
+            let tray_window =
+                create_tray_window(&app_handle, tray_window_label).expect("tray window must exist");
 
             tray::init(app);
             tray_window.to_popover(None);
 
             let tray = app
-                .tray_by_id(tray_window_label) // tray id from tauri.conf
+                .tray_by_id(tray_window_label) // tray id from tauri.conf.json
                 .expect("tray window must exist");
+
+            let app_handle_clone = app_handle.clone();
             tray.on_tray_icon_event(move |_, event| match event {
                 TrayIconEvent::Click {
                     button,
@@ -70,10 +79,25 @@ pub fn run() {
                     ..
                 } => {
                     if button == MouseButton::Left && button_state == MouseButtonState::Up {
-                        if tray_window.is_tray_popover_visible() {
-                            tray_window.close_tray_popover();
+                        let window_option = if let Some(window) =
+                            app_handle_clone.get_webview_window(tray_window_label)
+                        {
+                            Some(window)
                         } else {
-                            tray_window.open_tray_popover();
+                            // tray was probably suspended -> create new tray window
+                            if let Ok(window) = create_tray_window(&app_handle, tray_window_label) {
+                                window.to_popover(None);
+                                Some(window)
+                            } else {
+                                None
+                            }
+                        };
+                        if let Some(window) = window_option {
+                            if window.is_tray_popover_visible() {
+                                window.close_tray_popover();
+                            } else {
+                                window.open_tray_popover();
+                            }
                         }
                     }
                 }
@@ -81,6 +105,14 @@ pub fn run() {
             });
 
             Ok(())
+        })
+        .on_page_load(|window, payload| {
+            if let PageLoadEvent::Finished = payload.event() {
+                if window.label().eq(domain::AppWindow::Main.as_str()) {
+                    let _ = window.window().show();
+                    let __ = window.window().set_focus();
+                }
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

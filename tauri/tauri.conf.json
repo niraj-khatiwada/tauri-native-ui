@@ -28,6 +28,7 @@
         "hiddenTitle": true,
         "alwaysOnTop": true,
         "acceptFirstMouse": true,
+        "visible": false,
         "windowEffects": {
           "effects": ["sidebar"],
           "state": "active",

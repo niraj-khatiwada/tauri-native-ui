@@ -3,12 +3,12 @@ import Foundation
 import SwiftRs
 
 @MainActor
-private final class PopoverStorage {
+private final class TrayPopoverStorage {
     static var popover: NSPopover? = nil
     static var statusButton: NSStatusBarButton? = nil
 }
 
-private struct SendablePointers: @unchecked Sendable {
+private struct TraySendablePointers: @unchecked Sendable {
     let window: UnsafeMutableRawPointer
     let button: UnsafeMutableRawPointer
 }
@@ -19,7 +19,7 @@ public func initTrayPopoverManager(
     nsStatusBarButtonPtr: UnsafeMutableRawPointer,
     isFullSizeContent: Bool
 ) {
-    let containers = SendablePointers(window: nsWindowPtr, button: nsStatusBarButtonPtr)
+    let containers = TraySendablePointers(window: nsWindowPtr, button: nsStatusBarButtonPtr)
 
     DispatchQueue.main.async {
         let window = Unmanaged<NSWindow>.fromOpaque(containers.window).takeUnretainedValue()
@@ -46,16 +46,16 @@ public func initTrayPopoverManager(
             popover.hasFullSizeContent = true
         }
 
-        PopoverStorage.popover = popover
-        PopoverStorage.statusButton = button
+        TrayPopoverStorage.popover = popover
+        TrayPopoverStorage.statusButton = button
     }
 }
 
 @_cdecl("open_tray_popover_bridge")
 public func openTrayPopover() {
     DispatchQueue.main.async {
-        guard let popover = PopoverStorage.popover,
-            let button = PopoverStorage.statusButton
+        guard let popover = TrayPopoverStorage.popover,
+            let button = TrayPopoverStorage.statusButton
         else { return }
 
         if !popover.isShown {
@@ -67,7 +67,7 @@ public func openTrayPopover() {
 @_cdecl("close_tray_popover_bridge")
 public func closeTrayPopover() {
     DispatchQueue.main.async {
-        guard let popover = PopoverStorage.popover else { return }
+        guard let popover = TrayPopoverStorage.popover else { return }
         if popover.isShown {
             popover.performClose(nil)
         }
@@ -77,10 +77,10 @@ public func closeTrayPopover() {
 @_cdecl("is_tray_popover_visible_bridge")
 public func isTrayPopoverVisible() -> Bool {
     if Thread.isMainThread {
-        return MainActor.assumeIsolated { PopoverStorage.popover?.isShown ?? false }
+        return MainActor.assumeIsolated { TrayPopoverStorage.popover?.isShown ?? false }
     } else {
         return DispatchQueue.main.sync {
-            return MainActor.assumeIsolated { PopoverStorage.popover?.isShown ?? false }
+            return MainActor.assumeIsolated { TrayPopoverStorage.popover?.isShown ?? false }
         }
     }
 }
