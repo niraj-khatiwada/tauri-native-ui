@@ -1,8 +1,7 @@
 import AppKit
 import CoreHaptics
 
-@_cdecl("trigger_trackpad_haptic_bridge")
-public func triggerOneshotHaptic(intensity: Float, sharpness: Float) {
+public func triggerTrackpadHaptic(intensity: Double, sharpness: Double) {
     if CHHapticEngine.capabilitiesForHardware().supportsHaptics {
         do {
             let engine = try CHHapticEngine()
@@ -12,8 +11,8 @@ public func triggerOneshotHaptic(intensity: Float, sharpness: Float) {
             let event = CHHapticEvent(
                 eventType: .hapticTransient,
                 parameters: [
-                    CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity),
-                    CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness),
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: Float(intensity)),
+                    CHHapticEventParameter(parameterID: .hapticSharpness, value: Float(sharpness)),
                 ],
                 relativeTime: 0
             )

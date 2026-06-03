@@ -1,5 +1,4 @@
 import Cocoa
-import SwiftRs
 
 @MainActor
 class NativeToastManager {
@@ -231,9 +230,8 @@ extension NSColor {
     }
 }
 
-@_cdecl("show_native_toast_bridge")
 public func showNativeToast(
-    text: SRString, icon: SRString, iconHex: SRString, minX: Double, minY: Double
+    text: RustString, icon: RustString, iconHex: RustString, x: Double, y: Double
 ) {
     let textStr = text.toString()
     let iconStr = icon.toString()
@@ -242,8 +240,8 @@ public func showNativeToast(
     let optionalIcon = iconStr.isEmpty ? nil : iconStr
     let optionalIconHex = iconHexStr.isEmpty ? nil : iconHexStr
 
-    let optionalX = (minX == -1.0) ? nil : minX
-    let optionalY = (minY == -1.0) ? nil : minY
+    let optionalX = (x == -1.0) ? nil : x
+    let optionalY = (y == -1.0) ? nil : y
 
     DispatchQueue.main.async {
         NativeToastManager.shared.show(

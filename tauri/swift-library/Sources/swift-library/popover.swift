@@ -1,5 +1,4 @@
 import Cocoa
-import SwiftRs
 
 @MainActor
 class NativePopoverManager {
@@ -72,7 +71,6 @@ class PopoverContentViewController: NSViewController, NSPopoverDelegate {
     }
 }
 
-@_cdecl("show_native_popover_bridge")
 public func showNativePopover(x: Double, y: Double) {
     DispatchQueue.main.async {
         NativePopoverManager.shared.showOrToggle(x: x, y: y)

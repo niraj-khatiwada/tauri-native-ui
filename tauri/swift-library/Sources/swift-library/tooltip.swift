@@ -1,5 +1,4 @@
 import Cocoa
-import SwiftRs
 
 @MainActor
 class TooltipManager {
@@ -260,8 +259,7 @@ class TooltipViewController: NSViewController {
     }
 }
 
-@_cdecl("show_native_tooltip_bridge")
-public func showNativeTooltip(text: SRString, keysArrayStr: SRString, minX: Double, minY: Double) {
+public func showNativeTooltip(text: RustString, keysArrayStr: RustString, x: Double, y: Double) {
     let textStr = text.toString()
     let keysList = keysArrayStr.toString().components(separatedBy: " ")
 
@@ -269,13 +267,12 @@ public func showNativeTooltip(text: SRString, keysArrayStr: SRString, minX: Doub
         TooltipManager.shared.show(
             text: textStr,
             keys: keysList,
-            minX: minX,
-            minY: minY
+            minX: x,
+            minY: y
         )
     }
 }
 
-@_cdecl("close_native_tooltip_bridge")
 public func closeNativeTooltip() {
     DispatchQueue.main.async {
         TooltipManager.shared.hide()

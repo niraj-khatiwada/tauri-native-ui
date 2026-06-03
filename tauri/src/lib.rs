@@ -1,15 +1,19 @@
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
 use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
     webview::PageLoadEvent,
     AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
 };
 
-use crate::tray::WindowExt;
+// use crate::tray::WindowExt;
 
 mod commands;
 mod domain;
-mod macos;
-mod tray;
+mod macos_bridge;
+// mod tray;
+
+static TAURI_APP_HANDLE: Lazy<Mutex<Option<AppHandle>>> = Lazy::new(|| Mutex::new(None));
 
 fn create_tray_window(app_handle: &AppHandle, label: &str) -> Result<WebviewWindow, String> {
     let main_window = app_handle
@@ -55,55 +59,61 @@ pub fn run() {
             commands::quit_app
         ])
         .setup(|app| {
-            let app_handle = app.handle().clone();
+            let app_handle = app.handle();
+            let app_handle_clone = app_handle.clone();
+
+            if let Ok(mut guard) = TAURI_APP_HANDLE.lock() {
+                *guard = Some(app_handle_clone);
+            }
+
             let main_window = app_handle
                 .get_webview_window(domain::AppWindow::Main.as_str())
                 .expect("main window must exist");
-            macos::hide_traffic_light_buttons(&main_window);
+            macos_bridge::hide_traffic_light_buttons(&main_window);
 
             let tray_window_label = domain::AppWindow::Tray.as_str();
             let tray_window =
                 create_tray_window(&app_handle, tray_window_label).expect("tray window must exist");
 
-            tray::init(app);
-            tray_window.to_popover(None);
+            // tray::init(app);
+            // tray_window.to_popover(None);
 
-            let tray = app
-                .tray_by_id(tray_window_label) // tray id from tauri.conf.json
-                .expect("tray window must exist");
+            // let tray = app
+            //     .tray_by_id(tray_window_label) // tray id from tauri.conf.json
+            //     .expect("tray window must exist");
 
-            let app_handle_clone = app_handle.clone();
-            tray.on_tray_icon_event(move |_, event| match event {
-                TrayIconEvent::Click {
-                    button,
-                    button_state,
-                    ..
-                } => {
-                    if button == MouseButton::Left && button_state == MouseButtonState::Up {
-                        let window_option = if let Some(window) =
-                            app_handle_clone.get_webview_window(tray_window_label)
-                        {
-                            Some(window)
-                        } else {
-                            // tray was probably suspended -> create new tray window
-                            if let Ok(window) = create_tray_window(&app_handle, tray_window_label) {
-                                window.to_popover(None);
-                                Some(window)
-                            } else {
-                                None
-                            }
-                        };
-                        if let Some(window) = window_option {
-                            if window.is_tray_popover_visible() {
-                                window.close_tray_popover();
-                            } else {
-                                window.open_tray_popover();
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            });
+            // let app_handle_clone = app_handle.clone();
+            // tray.on_tray_icon_event(move |_, event| match event {
+            //     TrayIconEvent::Click {
+            //         button,
+            //         button_state,
+            //         ..
+            //     } => {
+            //         if button == MouseButton::Left && button_state == MouseButtonState::Up {
+            //             let window_option = if let Some(window) =
+            //                 app_handle_clone.get_webview_window(tray_window_label)
+            //             {
+            //                 Some(window)
+            //             } else {
+            //                 // tray was probably suspended -> create new tray window
+            //                 if let Ok(window) = create_tray_window(&app_handle, tray_window_label) {
+            //                     window.to_popover(None);
+            //                     Some(window)
+            //                 } else {
+            //                     None
+            //                 }
+            //             };
+            //             if let Some(window) = window_option {
+            //                 if window.is_tray_popover_visible() {
+            //                     window.close_tray_popover();
+            //                 } else {
+            //                     window.open_tray_popover();
+            //                 }
+            //             }
+            //         }
+            //     }
+            //     _ => {}
+            // });
 
             Ok(())
         })

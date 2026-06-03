@@ -1,12 +1,12 @@
-use crate::tray::WindowExt;
-use crate::{domain, macos};
+// use crate::tray::WindowExt;
+use crate::{domain, macos_bridge};
 use tauri::webview::PageLoadEvent;
 use tauri::{AppHandle, Manager, WebviewWindow};
 use tauri::{WebviewUrl, WebviewWindowBuilder};
 
 #[tauri::command]
 pub fn open_native_popover(_app: tauri::AppHandle, x: f64, y: f64) {
-    macos::show_native_popover(x, y);
+    macos_bridge::show_native_popover(x, y);
 }
 
 #[tauri::command]
@@ -27,24 +27,24 @@ pub fn open_window_popover(
     let popover_window_label = domain::AppWindow::Popover.as_str();
 
     if let Some(window) = app_handle.get_webview_window(popover_window_label) {
-        let app_clone = app_handle.clone();
-        window.on_window_event(move |event| {
-            if let tauri::WindowEvent::Destroyed = event {
-                let current_window_clone = current_window.clone();
-                let app_deferred = app_clone.clone();
-                tauri::async_runtime::spawn(async move {
-                    create_fresh_popover(
-                        &app_deferred,
-                        &current_window_clone,
-                        target_x,
-                        target_y,
-                        width,
-                        height,
-                    );
-                });
-            }
-        });
-        let _ = window.destroy();
+        // let app_clone = app_handle.clone();
+        // window.on_window_event(move |event| {
+        //     if let tauri::WindowEvent::Destroyed = event {
+        //         let current_window_clone = current_window.clone();
+        //         let app_deferred = app_clone.clone();
+        //         tauri::async_runtime::spawn(async move {
+        //             create_fresh_popover(
+        //                 &app_deferred,
+        //                 &current_window_clone,
+        //                 target_x,
+        //                 target_y,
+        //                 width,
+        //                 height,
+        //             );
+        //         });
+        //     }
+        // });
+        // let _ = window.destroy();
     } else {
         create_fresh_popover(
             &app_handle,
@@ -84,7 +84,7 @@ fn create_fresh_popover(
     .inner_size(width, height)
     .on_page_load(move |window, payload| {
         if let PageLoadEvent::Finished = payload.event() {
-            macos::show_window_as_popover(&window, target_x, target_y);
+            macos_bridge::show_window_as_popover(&window, target_x, target_y);
         }
     })
     .build()
@@ -96,12 +96,12 @@ fn create_fresh_popover(
 
 #[tauri::command]
 pub fn is_window_popover_visible() -> bool {
-    macos::is_window_as_popover_visible()
+    macos_bridge::is_window_as_popover_visible()
 }
 
 #[tauri::command]
 pub fn close_window_popover(app_handle: AppHandle) {
-    macos::close_window_as_popover();
+    macos_bridge::close_window_as_popover();
 
     let popover_window_label = domain::AppWindow::Popover.as_str();
     if let Some(window) = app_handle.get_webview_window(&popover_window_label) {
@@ -128,7 +128,7 @@ pub fn open_window_panel(
     let panel_window_label = domain::AppWindow::Panel.get_panel_window_label_by_id(&panel_id);
 
     if let Some(_) = app_handle.get_webview_window(&panel_window_label) {
-        macos::move_window_as_panel(&panel_id, target_x, target_y);
+        macos_bridge::move_window_as_panel(&panel_id, target_x, target_y);
     } else {
         create_fresh_panel(
             &app_handle,
@@ -175,7 +175,7 @@ fn create_fresh_panel(
     .inner_size(width, height)
     .on_page_load(move |window, payload| {
         if let PageLoadEvent::Finished = payload.event() {
-            macos::show_window_as_panel(&panel_id, &window, target_x, target_y);
+            macos_bridge::show_window_as_panel(&panel_id, &window, target_x, target_y);
         }
     })
     .build()
@@ -187,12 +187,12 @@ fn create_fresh_panel(
 
 #[tauri::command]
 pub fn is_window_panel_visible(panel_id: String) -> bool {
-    macos::is_window_as_panel_visible(&panel_id)
+    macos_bridge::is_window_as_panel_visible(&panel_id)
 }
 
 #[tauri::command]
 pub fn close_window_panel(app_handle: AppHandle, panel_id: String) {
-    macos::close_window_as_panel(&panel_id);
+    macos_bridge::close_window_as_panel(&panel_id);
 
     let panel_window_label = domain::AppWindow::Panel.get_panel_window_label_by_id(&panel_id);
     if let Some(window) = app_handle.get_webview_window(&panel_window_label) {
@@ -202,17 +202,17 @@ pub fn close_window_panel(app_handle: AppHandle, panel_id: String) {
 
 #[tauri::command]
 pub fn open_native_tooltip(text: String, keys: Vec<String>, x: f64, y: f64) {
-    macos::show_native_tooltip(text.as_str(), keys, x, y);
+    macos_bridge::show_native_tooltip(text.as_str(), keys, x, y);
 }
 
 #[tauri::command]
 pub fn close_native_tooltip() {
-    macos::close_native_tooltip();
+    macos_bridge::close_native_tooltip();
 }
 
 #[tauri::command]
 pub fn trigger_trackpad_haptic(intensity: Option<f64>, sharpenss: Option<f64>) {
-    macos::trigger_trackpad_haptic(intensity, sharpenss);
+    macos_bridge::trigger_trackpad_haptic(intensity, sharpenss);
 }
 
 #[tauri::command]
@@ -223,14 +223,14 @@ pub fn open_native_toast(
     x: Option<f64>,
     y: Option<f64>,
 ) {
-    macos::show_native_toast(text.as_str(), icon.as_deref(), icon_hex.as_deref(), x, y);
+    macos_bridge::show_native_toast(text.as_str(), icon.as_deref(), icon_hex.as_deref(), x, y);
 }
 
 #[tauri::command]
 pub fn open_tray_popover(app_handle: AppHandle) {
     match app_handle.get_webview_window(domain::AppWindow::Tray.as_str()) {
         Some(tray_window) => {
-            tray_window.open_tray_popover();
+            // tray_window.open_tray_popover();
         }
         None => {
             println!("tray window not found");
@@ -242,7 +242,7 @@ pub fn open_tray_popover(app_handle: AppHandle) {
 pub fn close_tray_popover(app_handle: AppHandle, suspend: bool) {
     match app_handle.get_webview_window(domain::AppWindow::Tray.as_str()) {
         Some(tray_window) => {
-            tray_window.close_tray_popover();
+            // tray_window.close_tray_popover();
             if suspend {
                 let tray_window_label = domain::AppWindow::Tray.as_str();
                 if let Some(window) = app_handle.get_webview_window(&tray_window_label) {
@@ -258,12 +258,12 @@ pub fn close_tray_popover(app_handle: AppHandle, suspend: bool) {
 
 #[tauri::command]
 pub fn is_tray_popover_visible(app_handle: AppHandle) -> bool {
-    match app_handle.get_webview_window(domain::AppWindow::Tray.as_str()) {
-        Some(tray_window) => return tray_window.is_tray_popover_visible(),
-        None => {
-            println!("tray window not found");
-        }
-    };
+    // match app_handle.get_webview_window(domain::AppWindow::Tray.as_str()) {
+    //     Some(tray_window) => return tray_window.is_tray_popover_visible(),
+    //     None => {
+    //         println!("tray window not found");
+    //     }
+    // };
     return false;
 }
 
@@ -297,7 +297,7 @@ pub fn focus_or_create_main_window(app_handle: tauri::AppHandle) -> Result<(), S
                 .build()
                 .map_err(|e| e.to_string())?;
 
-            macos::hide_traffic_light_buttons(&main_window);
+            macos_bridge::hide_traffic_light_buttons(&main_window);
         }
     }
     Ok(())

@@ -1,5 +1,4 @@
 import Cocoa
-import SwiftRs
 
 struct WindowAsPopoverSendableWindowPointer: Sendable {
     let address: Int
@@ -8,6 +7,7 @@ struct WindowAsPopoverSendableWindowPointer: Sendable {
         OpaquePointer(bitPattern: address)!
     }
 }
+
 
 @MainActor
 class WindowAsPopoverManager {
@@ -20,7 +20,10 @@ class WindowAsPopoverManager {
 
     func show(sendablePtr: WindowAsPopoverSendableWindowPointer, x: Double, y: Double) {
         self.stopObservingGlobalEvents()
-        self.closeActivePopover()
+        if let oldAnchor = self.activeAnchorWindow {
+                oldAnchor.close()
+                self.activeAnchorWindow = nil
+        }
 
         let rawUnsafe = UnsafeMutableRawPointer(sendablePtr.rawPointer)
         let sourceWindow = Unmanaged<NSWindow>.fromOpaque(rawUnsafe).takeUnretainedValue()
@@ -75,6 +78,8 @@ class WindowAsPopoverManager {
         self.activeAnchorWindow = anchorWindow
         self.isCleaningUp = false
 
+        window_as_popover_event(WindowAsPopoverEventType.Opened) // notify rust
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleGlobalDismissal(_:)),
@@ -114,6 +119,8 @@ class WindowAsPopoverManager {
         self.activePopover = nil
         self.activeAnchorWindow = nil
         isCleaningUp = false
+        
+        window_as_popover_event(WindowAsPopoverEventType.Closed) // notify rust
     }
 
     func isPopoverOpened() -> Bool {
@@ -128,8 +135,7 @@ class WindowAsPopoverManager {
     }
 }
 
-@_cdecl("show_window_as_popover_bridge")
-public func showWindowAsPopover(windowRawPtr: OpaquePointer, x: Double, y: Double) {
+public func showWindowAsPopover(windowRawPtr: UnsafeMutableRawPointer?, x: Double, y: Double) {
     let ptrInt = Int(bitPattern: windowRawPtr)
     let sendableContainer = WindowAsPopoverSendableWindowPointer(address: ptrInt)
 
@@ -138,14 +144,12 @@ public func showWindowAsPopover(windowRawPtr: OpaquePointer, x: Double, y: Doubl
     }
 }
 
-@_cdecl("close_window_as_popover_bridge")
 public func closeWindowAsPopover() {
     DispatchQueue.main.async {
         WindowAsPopoverManager.shared.closeActivePopover()
     }
 }
 
-@_cdecl("is_window_as_popover_visible_bridge")
 public func isWindowAsPopoverVisible() -> Bool {
     if Thread.isMainThread {
         return MainActor.assumeIsolated { WindowAsPopoverManager.shared.isPopoverOpened() }

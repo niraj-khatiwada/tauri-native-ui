@@ -1,6 +1,5 @@
 import AppKit
 import Foundation
-import SwiftRs
 
 @MainActor
 private final class TrayPopoverStorage {
@@ -13,7 +12,6 @@ private struct TraySendablePointers: @unchecked Sendable {
     let button: UnsafeMutableRawPointer
 }
 
-@_cdecl("init_tray_popover_manager_bridge")
 public func initTrayPopoverManager(
     nsWindowPtr: UnsafeMutableRawPointer,
     nsStatusBarButtonPtr: UnsafeMutableRawPointer,
@@ -51,7 +49,6 @@ public func initTrayPopoverManager(
     }
 }
 
-@_cdecl("open_tray_popover_bridge")
 public func openTrayPopover() {
     DispatchQueue.main.async {
         guard let popover = TrayPopoverStorage.popover,
@@ -64,7 +61,6 @@ public func openTrayPopover() {
     }
 }
 
-@_cdecl("close_tray_popover_bridge")
 public func closeTrayPopover() {
     DispatchQueue.main.async {
         guard let popover = TrayPopoverStorage.popover else { return }
@@ -74,7 +70,6 @@ public func closeTrayPopover() {
     }
 }
 
-@_cdecl("is_tray_popover_visible_bridge")
 public func isTrayPopoverVisible() -> Bool {
     if Thread.isMainThread {
         return MainActor.assumeIsolated { TrayPopoverStorage.popover?.isShown ?? false }
